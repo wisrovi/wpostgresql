@@ -1,22 +1,22 @@
-# Wutils
+# wpostgresql
 
-**WRedis** is a library for specific functions for various Python projects.
+**wpostgresql** is a library for specific functions for interacting with PostgreSQL databases.
 
 # Description
 
-WRedis simplifies code reuse in Python projects. The library offers a number of modules that make using modules easier and simpler.
+wpostgresql simplifies code for interacting with PostgreSQL databases. It provides a number of functions for creating, reading, updating, and deleting data in PostgreSQL databases.
 
 ## Installation
 
 To install the library, use `pip`:
 
 ```bash
-pip install wutils
+pip install wpostgresql
 ```
 
 # Description
 
-The **wutils** library offers a number of general-purpose modules.
+The **wpostgresql** library offers a number of general-purpose modules.
 
 # License
 

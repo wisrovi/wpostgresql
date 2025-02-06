@@ -30,7 +30,7 @@ setup(
     description=config_project["project"]["description"],
     long_description_content_type="text/markdown",
     long_description=long_description,
-    url="https://github.com/wisrovi/wutils",
+    url="https://github.com/wisrovi/wpostgresql",
     author="William Steve Rodriguez Villamizar",
     author_email="wisrovi.rodriguez@gmail.com",
     license="MIT",
