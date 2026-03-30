@@ -1,0 +1,47 @@
+version: "3.3"
+services:
+  postgres:
+    # image: wisrovi/postgres:v1
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.postgress
+
+    image: postgres:13.2
+
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=wpostgresql
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    ports:
+      - "5432:5432"
+    restart: always
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container
+    restart: always
+    ports:
+      - "1717:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: wisrovi.rodriguez@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: 12345678
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+
+volumes:
+  pgadmin-data:
+
+# sudo apt-get install libpq-dev
+
+
