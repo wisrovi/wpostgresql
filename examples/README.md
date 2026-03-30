@@ -1,167 +1,126 @@
-# Examples
+# Ejemplos - wpostgresql
 
-This directory contains a collection of examples that demonstrate the usage of various modules and functionalities in this project. Each subfolder corresponds to a specific module and includes example scripts to help you understand how to use that module.
+Colección de ejemplos y tests organizados por funcionalidades para aprender a usar la librería.
 
-## Directory Structure
-
-The examples are organized as follows:
+## Estructura General
 
 ```
 examples/
-    wpostgresql/
-        crupd.py
-        new_columns.py
-        with_restrictions.py
+├── README.md              # Este archivo
+├── test/                  # Tests de integración
+│   ├── conftest.py
+│   ├── 01_crud/
+│   ├── 02_new_columns/
+│   └── 03_restrictions/
+├── 01_crud/              # Ejemplos CRUD
+├── 02_new_columns/      # Ejemplos columnas dinámicas
+├── 03_restrictions/      # Ejemplos restricciones
+├── 04_pagination/        # ⏳ Pendiente implementación
+├── 05_transactions/      # ⏳ Pendiente implementación
+├── 06_bulk_operations/  # ⏳ Pendiente implementación
+├── 07_connection_pooling/ # ⏳ Pendiente implementación
+├── 08_logging/          # ⏳ Pendiente implementación
+└── 09_async/            # ⏳ Pendiente implementación
 ```
 
-## How to Use
+---
 
-1. Navigate to the module folder of interest, e.g., `examples/module1/`.
-2. Open the `README.md` in that folder to get detailed information about the examples.
-3. Run the scripts directly using:
-   ```bash
-   python example1.py
-   ```
+## Ejemplos (Para aprender)
 
-## Modules and Examples
+### 01_crud - Operaciones Básicas
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_create](./01_crud/01_create/) | Insertar nuevos registros |
+| [02_read](./01_crud/02_read/) | Consultar registros |
+| [03_update](./01_crud/03_update/) | Actualizar registros |
+| [04_delete](./01_crud/04_delete/) | Eliminar registros |
 
-### wpostgresql
+### 02_new_columns - Columnas Dinámicas
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_add_column](./02_new_columns/01_add_column/) | Añadir nuevas columnas al modelo |
 
-#### Description
-This module demonstrates specific functionalities.
+### 03_restrictions - Restricciones de Datos
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_primary_key](./03_restrictions/01_primary_key/) | Clave primaria (evitar duplicados) |
+| [02_unique](./03_restrictions/02_unique/) | Valores únicos |
+| [03_not_null](./03_restrictions/03_not_null/) | Campos obligatorios |
 
+### 04_pagination - Paginación ⭐ Nuevo
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_limit_offset](./04_pagination/01_limit_offset/) | Limitar y offset de resultados |
+| [02_page_number](./04_pagination/02_page_number/) | Paginación por número de página |
 
-- **crupd.py**: Example demonstrating functionality.
-```python
-from pydantic import BaseModel
-from wpostgresql import WPostgreSQL  # Asegúrate de tener definida la clase WPostgreSQL
+### 05_transactions - Transacciones ⭐ Nuevo
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_basic_transaction](./05_transactions/01_basic_transaction/) | Transacciones atómicas |
 
-# Configuración de conex                                            ión a PostgreSQL
-db_config = {
-    'dbname': 'wpostgresql',
-    'user': 'postgres',
-    'password': 'postgres',
-    'host': 'localhost',
-    'port': 5432
-}
+### 06_bulk_operations - Operaciones en Lote ⭐ Nuevo
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_insert_many](./06_bulk_operations/01_insert_many/) | Insertar múltiples registros |
+| [02_update_many](./06_bulk_operations/02_update_many/) | Actualizar múltiples registros |
 
-# Definir el modelo sin restricciones adicionales
-class SimpleModel2(BaseModel):
-    id: int
-    name: str
-    age: int
-    is_active: bool
+### 07_connection_pooling - Pool de Conexiones ⭐ Nuevo
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_simple_pool](./07_connection_pooling/01_simple_pool/) | Configurar connection pooling |
 
-# Crear la base de datos y la tabla (se crean o sincronizan automáticamente)
-db = WPostgreSQL(SimpleModel2, db_config)
+### 08_logging - Logging ⭐ Nuevo
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_basic_logging](./08_logging/01_basic_logging/) | Configurar logging |
 
-# Insertar datos
-db.insert(SimpleModel2(id=1, name="Juan Pérez", age=30, is_active=True))
-db.insert(SimpleModel2(id=2, name="Ana López", age=25, is_active=True))
-db.insert(SimpleModel2(id=3, name="Pedro Gómez", age=40, is_active=False))
+### 09_async - Async / Await ⭐ Nuevo
+| Ejemplo | Descripción |
+|---------|-------------|
+| [01_basic_async](./09_async/01_basic_async/) | Versión asíncrona de la librería |
 
-# Consultar todos los registros
-print("Todos los usuarios:", db.get_all())
+---
 
-# Consultar por un campo específico
-print("Usuarios llamados Juan Pérez:", db.get_by_field(name="Juan Pérez"))
+## Tests (Para verificar)
 
-# Consultar por múltiples filtros
-print("Usuarios activos con 25 años:", db.get_by_field(age=25, is_active=True))
+### Ejecutar tests
 
-# Actualizar un usuario (por ejemplo, actualizando el registro con id=1)
-db.update(1, SimpleModel2(id=1, name="Juan Pérez", age=31, is_active=False))
-print("Usuario actualizado (id=1):", db.get_by_field(id=1))
+```bash
+# Todos los tests
+python -m pytest examples/test/ -v
 
-# Eliminar un usuario (por ejemplo, el de id=3)
-db.delete(3)
-print("Usuarios después de eliminar a Pedro Gómez:", db.get_all())
-  ```
+# Un archivo específico
+python -m pytest examples/test/01_crud/test_create.py -v
+```
 
+### Tests disponibles
 
-- **new_columns.py**: Example demonstrating functionality.
-```python
-from pydantic import BaseModel, Field
-from typing import Optional
-from wpostgresql import WPostgreSQL
+| Carpeta | Tests | Estado |
+|---------|-------|--------|
+| 01_crud | 7 tests | ✅ Pass |
+| 02_new_columns | 1 test | ✅ Pass |
+| 03_restrictions | 3 tests | ✅ Pass |
 
-db_config = {
-    'dbname': 'wpostgresql',
-    'user': 'postgres',
-    'password': 'postgres',
-    'host': 'localhost',
-    'port': 5432
-}
+**Total: 11 tests**
 
-# Modelo inicial sin el campo email
-class SimpleModel4(BaseModel):
-    id: int = Field(..., description="Primary Key")
-    name: str = Field(..., description="NOT NULL")
-    age: int
-    is_active: bool
+---
 
-# Crear la tabla con el modelo inicial e insertar un registro
-db = WPostgreSQL(SimpleModel4, db_config)
-db.insert(SimpleModel4(id=1, name="Ana López", age=25, is_active=True))
+## Requisitos
 
-# === AHORA SE AÑADE UN NUEVO CAMPO AL MODELO ===
-class SimpleModel4(BaseModel):
-    id: int = Field(..., description="Primary Key")
-    name: str = Field(..., description="NOT NULL")
-    age: int
-    is_active: bool
-    email: Optional[str]  # Nuevo campo sin restricciones en la base de datos
+- Python 3.6+
+- PostgreSQL
+- Librerías: `wpostgresql`, `pydantic`, `psycopg2`, `pytest`
 
-# Al instanciar nuevamente WPostgreSQL con el modelo actualizado se sincroniza la tabla
-db = WPostgreSQL(SimpleModel4, db_config)
+### Levantar base de datos
 
-# Insertar un nuevo registro que incluya el nuevo campo
-db.insert(SimpleModel4(id=2, name="Ana López", age=25, is_active=True, email="ana@example.com"))
+```bash
+cd enviroment
+docker-compose up -d
+```
 
-# Mostrar todos los registros después de la actualización
-print("Usuarios después de actualizar el modelo:", db.get_all())
-  ```
+### Instalar dependencias
 
-
-- **with_restrictions.py**: Example demonstrating functionality.
-```python
-from pydantic import BaseModel, Field
-from typing import Optional
-from wpostgresql import WPostgreSQL
-
-db_config = {
-    'dbname': 'wpostgresql',
-    'user': 'postgres',
-    'password': 'postgres',
-    'host': 'localhost',
-    'port': 5432
-}
-
-# Definir el modelo con restricciones
-class SimpleModel5(BaseModel):
-    id: int = Field(..., description="Primary Key")
-    name: str = Field(..., description="NOT NULL")
-    age: int
-    is_active: bool
-    email: Optional[str] = Field(None, description="UNIQUE")  # Email debe ser único
-
-# Crear la base de datos y sincronizar con el modelo
-db = WPostgreSQL(SimpleModel5, db_config)
-
-# Insertar un registro válido
-db.insert(SimpleModel5(id=1, name="Juan Pérez", age=30, is_active=True, email="juan@example.com"))
-
-# Intentar insertar un registro con un email duplicado (esto debería fallar)
-try:
-    db.insert(SimpleModel5(id=2, name="Ana López", age=25, is_active=True, email="juan@example.com"))
-except Exception as e:
-    print("Error al insertar usuario duplicado:", e)
-
-# Insertar otro registro con un email único (esto funcionará)
-db.insert(SimpleModel5(id=3, name="Pedro Gómez", age=40, is_active=False, email="pedro@example.com"))
-
-# Mostrar los registros almacenados
-print("Usuarios en la base de datos:", db.get_all())
-  ```
-
-
+```bash
+pip install -e .
+pip install pytest
+```
