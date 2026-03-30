@@ -1,7 +1,86 @@
 """Connection management for PostgreSQL."""
 
+import logging
+from contextlib import contextmanager
+from typing import Any, Optional
+
 import psycopg2
 from psycopg2 import pool
+
+logger = logging.getLogger(__name__)
+
+
+class Transaction:
+    """Context manager for database transactions."""
+
+    def __init__(self, db_config: dict):
+        """Initialize transaction.
+
+        Args:
+            db_config: PostgreSQL connection configuration.
+        """
+        self.db_config = db_config
+        self.conn = None
+        self._committed = False
+
+    def __enter__(self):
+        """Enter transaction context."""
+        self.conn = psycopg2.connect(**self.db_config)
+        self.conn.autocommit = False
+        logger.debug("Transaction started")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit transaction context."""
+        if exc_type is not None:
+            self.conn.rollback()
+            logger.debug("Transaction rolled back")
+        elif not self._committed:
+            self.conn.commit()
+            logger.debug("Transaction committed")
+        self.conn.close()
+        return False
+
+    def commit(self):
+        """Commit the transaction."""
+        self.conn.commit()
+        self._committed = True
+        logger.debug("Transaction committed")
+
+    def rollback(self):
+        """Rollback the transaction."""
+        self.conn.rollback()
+        logger.debug("Transaction rolled back")
+
+    def execute(self, query: str, values: tuple = None) -> Any:
+        """Execute a query within the transaction.
+
+        Args:
+            query: SQL query to execute.
+            values: Query parameters.
+
+        Returns:
+            Query result if any.
+        """
+        with self.conn.cursor() as cursor:
+            cursor.execute(query, values)
+            if cursor.description:
+                return cursor.fetchall()
+            return cursor.rowcount
+
+
+@contextmanager
+def get_transaction(db_config: dict):
+    """Get a transaction context manager.
+
+    Args:
+        db_config: PostgreSQL connection configuration.
+
+    Yields:
+        Transaction object.
+    """
+    transaction = Transaction(db_config)
+    yield transaction
 
 
 class ConnectionManager:
