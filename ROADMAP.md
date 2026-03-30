@@ -16,13 +16,13 @@
 ## v0.4.0 - Enhancements
 - [x] Soporte para índices (create_index, drop_index, get_indexes)
 - [x] Async support (WPostgreSQLAsync example)
-- [ ] Documentación API completa
-- [ ] CLI tool
+- [x] Documentación API completa (docs/API.md)
+- [x] CLI tool (wpostgresql CLI)
 
 ## v1.0.0 - Release
-- [ ] Código estable y testeado
-- [ ] Documentación completa
-- [ ] Cobertura de tests > 80% (actualmente 100%)
+- [x] Código estable y testeado
+- [x] Documentación completa
+- [x] Cobertura de tests > 80% (actualmente 98%)
 
 ---
 

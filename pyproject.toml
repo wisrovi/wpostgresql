@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wpostgresql"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     { name = "William Steve Rodriguez Villamizar", email = "wisrovi.rodriguez@gmail.com" },
 ]
@@ -30,6 +30,7 @@ dependencies = [
     "psycopg2-binary>=2.9.0",
     "pydantic>=2.0.0",
     "loguru>=0.7.0",
+    "click>=8.0.0",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,9 @@ dev = [
     "black>=23.0.0",
     "mypy>=1.0.0",
 ]
+
+[project.scripts]
+wpostgresql = "wpostgresql.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/wisrovi/wpostgresql"
