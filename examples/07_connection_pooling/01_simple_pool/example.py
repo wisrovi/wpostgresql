@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from wpostgresql import WPostgreSQL
+from wpostgresql import ConnectionManager, WPostgreSQL
 
 db_config = {
     "dbname": "wpostgresql",
@@ -8,8 +8,6 @@ db_config = {
     "password": "postgres",
     "host": "localhost",
     "port": 5432,
-    "minconn": 1,
-    "maxconn": 10,
 }
 
 
@@ -19,10 +17,17 @@ class Person(BaseModel):
     age: int
 
 
-db = WPostgreSQL(Person, db_config, pool_enabled=True)
+pool = ConnectionManager(db_config, min_connections=1, max_connections=10)
+
+conn = pool.get_connection()
+print(f"Conexión obtenida del pool: {conn}")
+
+pool.release_connection(conn)
+pool.close_all()
+
+db = WPostgreSQL(Person, db_config)
 
 for i in range(20):
     db.insert(Person(id=i, name=f"Person {i}", age=20 + i))
 
-print(f"Conexiones activas: {db.get_pool_status()}")
 print("Registros:", len(db.get_all()))

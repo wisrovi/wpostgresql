@@ -22,9 +22,13 @@ db.insert(Person(id=1, name="Alice", balance=1000))
 db.insert(Person(id=2, name="Bob", balance=500))
 
 try:
-    with db.transaction() as t:
-        t.execute("UPDATE user SET balance = balance - 100 WHERE id = 1")
-        t.execute("UPDATE user SET balance = balance + 100 WHERE id = 2")
+    result = db.execute_transaction(
+        [
+            ("UPDATE person SET balance = balance - 100 WHERE id = 1", None),
+            ("UPDATE person SET balance = balance + 100 WHERE id = 2", None),
+        ]
+    )
+    print("Transacción exitosa")
 except Exception as e:
     print("Transacción fallida:", e)
 
