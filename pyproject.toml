@@ -6,18 +6,71 @@ build-backend = "hatchling.build"
 name = "wpostgresql"
 version = "0.1.0"
 authors = [
-    { name="wisrovi", email="wisrovi.rodriguez@gmail.com" },
+    { name = "William Steve Rodriguez Villamizar", email = "wisrovi.rodriguez@gmail.com" },
 ]
-description = "Utilities for Python in postgresql"
+description = "PostgreSQL ORM using Pydantic models - simple, type-safe database operations"
 readme = "README.md"
-license = { file="LICENSE" }
-requires-python = ">=3.6"
+license = { text = "MIT" }
+requires-python = ">=3.9"
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Database :: Database Engines/Servers",
+]
+dependencies = [
+    "psycopg2-binary>=2.9.0",
+    "pydantic>=2.0.0",
+    "loguru>=0.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/wisrovi/wpostgresql"
-"Bug Tracker" = "https://github.com/wisrovi/wpostgresql/issues"
+Homepage = "https://github.com/wisrovi/wpostgresql"
+Documentation = "https://github.com/wisrovi/wpostgresql#readme"
+Repository = "https://github.com/wisrovi/wpostgresql"
+Issues = "https://github.com/wisrovi/wpostgresql/issues"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["test", "examples/test"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["wpostgresql"]
+omit = ["*/tests/*", "*/test_*.py", "*/test/"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
