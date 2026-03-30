@@ -81,8 +81,14 @@ class Person(BaseModel):
     @patch("wpostgresql.cli.main.WPostgreSQL")
     def test_list_command(self, mock_wpg):
         """Test list command."""
+        from pydantic import BaseModel
+
+        class Person(BaseModel):
+            id: int
+            name: str
+
         mock_db = MagicMock()
-        mock_db.get_paginated.return_value = []
+        mock_db.get_paginated.return_value = [Person(id=1, name="Alice")]
         mock_wpg.return_value = mock_db
 
         runner = CliRunner()
@@ -104,6 +110,42 @@ class Person(BaseModel):
 
             result = runner.invoke(cli, ["list", "config.json", model_path])
             assert result.exit_code == 0
+            assert "Alice" in result.output
+
+    @patch("wpostgresql.cli.main.WPostgreSQL")
+    def test_insert_command(self, mock_wpg):
+        """Test insert command."""
+        from pydantic import BaseModel
+
+        class Person(BaseModel):
+            id: int
+            name: str
+
+        mock_db = MagicMock()
+        mock_wpg.return_value = mock_db
+
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            with open("config.json", "w") as f:
+                f.write('{"dbname": "test"}')
+
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+                f.write("""
+from pydantic import BaseModel
+
+class Person(BaseModel):
+    id: int
+    name: str
+""")
+                model_path = f.name
+
+            result = runner.invoke(
+                cli, ["insert", "config.json", model_path, '{"id": 1, "name": "Alice"}']
+            )
+            assert result.exit_code == 0
+            assert "successfully" in result.output
 
     @patch("wpostgresql.cli.main.WPostgreSQL")
     def test_count_command(self, mock_wpg):
