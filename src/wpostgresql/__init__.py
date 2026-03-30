@@ -16,8 +16,34 @@ Usage:
     db.insert(User(id=1, name="John", email="john@example.com"))
 """
 
+from wpostgresql.builders import QueryBuilder
+from wpostgresql.core.connection import ConnectionManager, Transaction, get_transaction
 from wpostgresql.core.repository import WPostgreSQL
+from wpostgresql.core.sync import TableSync
+from wpostgresql.exceptions import (
+    ConnectionError,
+    OperationError,
+    SQLInjectionError,
+    TableSyncError,
+    TransactionError,
+    ValidationError,
+    WPostgreSQLError,
+)
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
-__all__ = ["WPostgreSQL"]
+__all__ = [
+    "WPostgreSQL",
+    "QueryBuilder",
+    "ConnectionManager",
+    "Transaction",
+    "get_transaction",
+    "TableSync",
+    "WPostgreSQLError",
+    "ConnectionError",
+    "TableSyncError",
+    "ValidationError",
+    "OperationError",
+    "SQLInjectionError",
+    "TransactionError",
+]
