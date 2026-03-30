@@ -1,7 +1,0 @@
-loguru
-tomli
-setuptools
-
-psycopg2
-pydantic
-psycopg2-binary
