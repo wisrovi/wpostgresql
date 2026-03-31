@@ -55,6 +55,7 @@ class TestSyncTable:
         class PersonV1(BaseModel):
             """Initial model version."""
 
+            __tablename__ = "person"
             id: int = Field(..., description="Primary Key")
             name: str
             age: int
@@ -79,8 +80,7 @@ class TestSyncTable:
         try:
             with pg_conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_name = 'person'"
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'person'"
                 )
                 columns: List[str] = [row[0] for row in cursor.fetchall()]
                 assert "email" in columns
@@ -102,6 +102,8 @@ class TestSyncTable:
             __tablename__ = "person"
             id: int = Field(..., description="Primary Key")
             name: str
+
+        cleanup_table("person")
 
         db_v1 = WPostgreSQL(PersonBase, DB_CONFIG)
         db_v1.insert(PersonBase(id=1, name="Juan"))
@@ -155,8 +157,7 @@ class TestSyncTable:
         try:
             with pg_conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_name = 'person'"
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'person'"
                 )
                 columns: List[str] = [row[0] for row in cursor.fetchall()]
                 assert "email" in columns
