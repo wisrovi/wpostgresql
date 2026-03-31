@@ -16,7 +16,7 @@ _global_pool_lock = threading.Lock()
 _global_sync_pool: Optional[ConnectionPool] = None
 # pylint: disable=invalid-name
 _global_async_pool: Optional[AsyncConnectionPool] = None
-_default_pool_config = {"min_size": 2, "max_size": 20}
+DEFAULT_POOL_CONFIG = {"min_size": 5, "max_size": 50}
 
 
 def _build_conninfo(db_config: dict) -> str:
@@ -39,11 +39,12 @@ def _build_conninfo(db_config: dict) -> str:
     return " ".join(parts)
 
 
-def _get_global_sync_pool(db_config: dict) -> ConnectionPool:
+def _get_global_sync_pool(db_config: dict, pool_config: Optional[dict] = None) -> ConnectionPool:
     """Get or create global sync connection pool.
 
     Args:
         db_config: Dictionary containing database connection parameters.
+        pool_config: Optional pool configuration dictionary.
 
     Returns:
         ConnectionPool: The global synchronous connection pool.
@@ -51,24 +52,92 @@ def _get_global_sync_pool(db_config: dict) -> ConnectionPool:
     # pylint: disable=global-statement
     global _global_sync_pool
 
+    config = pool_config or DEFAULT_POOL_CONFIG
     conninfo = _build_conninfo(db_config)
 
     with _global_pool_lock:
         if _global_sync_pool is None:
             _global_sync_pool = ConnectionPool(
                 conninfo,
-                min_size=_default_pool_config["min_size"],
-                max_size=_default_pool_config["max_size"],
+                min_size=config.get("min_size", DEFAULT_POOL_CONFIG["min_size"]),
+                max_size=config.get("max_size", DEFAULT_POOL_CONFIG["max_size"]),
             )
-            logger.info("Created global sync pool")
+            logger.info("Created global sync pool with config: %s", config)
         return _global_sync_pool
 
 
-def _get_global_async_pool(db_config: dict) -> AsyncConnectionPool:
+def configure_pool(
+    db_config: dict,
+    min_size: int = 2,
+    max_size: int = 20,
+) -> None:
+    """Configure global connection pool settings.
+
+    Call this function BEFORE creating any WPostgreSQL instances to set
+    custom pool sizes. This is useful for high-concurrency scenarios.
+
+    Args:
+        db_config: Database configuration dictionary.
+        min_size: Minimum number of connections in the pool.
+        max_size: Maximum number of connections in the pool.
+
+    Example:
+        from wpostgresql import configure_pool, WPostgreSQL
+
+        configure_pool(db_config, min_size=10, max_size=100)
+        db = WPostgreSQL(Model, db_config)
+    """
+    # pylint: disable=global-statement
+    global _global_sync_pool, _global_async_pool
+
+    conninfo = _build_conninfo(db_config)
+
+    with _global_pool_lock:
+        if _global_sync_pool is not None:
+            _global_sync_pool.close()
+        _global_sync_pool = ConnectionPool(
+            conninfo,
+            min_size=min_size,
+            max_size=max_size,
+        )
+        logger.info("Configured sync pool: min=%d, max=%d", min_size, max_size)
+
+        # Reset async pool to None - it will be recreated on first async use
+        # with the new configuration
+        _global_async_pool = None
+        logger.info("Reset async pool for reconfiguration: min=%d, max=%d", min_size, max_size)
+        logger.info("Configured sync pool: min=%d, max=%d", min_size, max_size)
+
+        if _global_async_pool is not None:
+            try:
+                _global_async_pool.close()
+            except Exception:
+                pass
+        _global_async_pool = None
+        # Store config for later async pool creation
+        _configured_pool = {"db_config": db_config, "min_size": min_size, "max_size": max_size}
+        logger.info("Reset async pool for reconfiguration: min=%d, max=%d", min_size, max_size)
+        logger.info("Configured sync pool: min=%d, max=%d", min_size, max_size)
+
+        if _global_async_pool is not None:
+            try:
+                _global_async_pool.close()
+            except Exception:
+                pass
+        # Reset async pool to None so it will be recreated with new config
+        # when first accessed in an async context
+        _global_async_pool = None
+        logger.info("Reset async pool for reconfiguration: min=%d, max=%d", min_size, max_size)
+
+
+def _get_global_async_pool(
+    db_config: dict, pool_config: Optional[dict] = None
+) -> AsyncConnectionPool:
     """Get or create global async connection pool.
 
     Args:
         db_config: Dictionary containing database connection parameters.
+        pool_config: Optional pool configuration dictionary.
 
     Returns:
         AsyncConnectionPool: The global asynchronous connection pool.
@@ -76,17 +145,20 @@ def _get_global_async_pool(db_config: dict) -> AsyncConnectionPool:
     # pylint: disable=global-statement
     global _global_async_pool
 
+    config = pool_config or DEFAULT_POOL_CONFIG
     conninfo = _build_conninfo(db_config)
 
     with _global_pool_lock:
         if _global_async_pool is None:
             _global_async_pool = AsyncConnectionPool(
                 conninfo,
-                min_size=_default_pool_config["min_size"],
-                max_size=_default_pool_config["max_size"],
-                open=True,
+                min_size=config.get("min_size", DEFAULT_POOL_CONFIG["min_size"]),
+                max_size=config.get("max_size", DEFAULT_POOL_CONFIG["max_size"]),
+                open=False,  # Will be opened lazily in get_async_connection
             )
-            logger.info("Created global async pool")
+            logger.info(
+                "Created global async pool with config: %s (will open on first use)", config
+            )
         return _global_async_pool
 
 
@@ -404,7 +476,7 @@ class AsyncConnectionManager:
         await self.close_all()
 
 
-def get_connection(db_config: dict) -> _PooledConnection:
+def get_connection(db_config: dict, pool_config: Optional[dict] = None) -> _PooledConnection:
     """Get a connection from global pool (sync). Uses connection pooling automatically.
 
     Returns a context manager that automatically returns the connection to the pool.
@@ -415,16 +487,19 @@ def get_connection(db_config: dict) -> _PooledConnection:
 
     Args:
         db_config: Database configuration dictionary.
+        pool_config: Optional pool configuration dictionary.
 
     Returns:
         _PooledConnection: A wrapper around a pooled connection.
     """
-    pool = _get_global_sync_pool(db_config)
+    pool = _get_global_sync_pool(db_config, pool_config)
     conn = pool.getconn()
     return _PooledConnection(conn, pool)
 
 
-async def get_async_connection(db_config: dict) -> _PooledAsyncConnection:
+async def get_async_connection(
+    db_config: dict, pool_config: Optional[dict] = None
+) -> _PooledAsyncConnection:
     """Get a connection from global pool (async). Uses connection pooling automatically.
 
     Returns an async context manager that automatically returns the connection to the pool.
@@ -435,10 +510,17 @@ async def get_async_connection(db_config: dict) -> _PooledAsyncConnection:
 
     Args:
         db_config: Database configuration dictionary.
+        pool_config: Optional pool configuration dictionary.
 
     Returns:
         _PooledAsyncConnection: A wrapper around a pooled async connection.
     """
-    pool = _get_global_async_pool(db_config)
-    conn = await pool.getconn()
+    pool = _get_global_async_pool(db_config, pool_config)
+    # Open pool lazily if needed (psycopg_pool 3.x requires open() before use)
+    try:
+        conn = await pool.getconn()
+    except Exception:
+        # Pool not yet open, open it now
+        await pool.open()
+        conn = await pool.getconn()
     return _PooledAsyncConnection(conn, pool)

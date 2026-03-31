@@ -306,6 +306,7 @@
                 <a href="#performance" class="nav-link">Performance</a>
                 <a href="#quickstart" class="nav-link">Quick Start</a>
                 <a href="#examples" class="nav-link">Examples</a>
+                <a href="stress_test_report.html" class="nav-link" target="_blank">Stress Test</a>
                 <a href="https://wpostgresql.readthedocs.io/en/latest/" class="nav-cta" target="_blank">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                     Docs
@@ -322,7 +323,7 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Production Ready • 157 Tests Passing
+                v1.0.0 LTS • 228 Tests Passing • 95% Coverage
             </div>
             <h1 class="hero-title">
                 <span class="gradient-text">Type-Safe PostgreSQL ORM</span><br>
@@ -347,6 +348,7 @@
                 <div class="hero-badge-item"><img src="https://img.shields.io/pypi/pyversions/wpostgresql.svg?style=flat-square" alt="Python"></div>
                 <div class="hero-badge-item"><img src="https://img.shields.io/github/license/wisrovi/wpostgresql.svg?style=flat-square" alt="License"></div>
                 <div class="hero-badge-item"><img src="https://img.shields.io/github/stars/wisrovi/wpostgresql?style=social" alt="Stars"></div>
+                <div class="hero-badge-item"><img src="https://img.shields.io/badge/LTS-1.0.0-green?style=flat-square" alt="LTS"></div>
                 <div class="hero-badge-item">
                     <a href="https://pepy.tech/projects/wpostgresql">
                         <img src="https://static.pepy.tech/personalized-badge/wpostgresql?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads" alt="PyPI Downloads">
@@ -423,29 +425,29 @@ users = db.get_all()  <span class="comment"># Done!</span></pre>
             <div class="section-header">
                 <span class="section-label">Performance</span>
                 <h2 class="section-title">Stress Test <span class="gradient-text">Results</span></h2>
-                <p class="section-description">Validated under high-load conditions. 100,000+ operations with zero data loss.</p>
+                <p class="section-description">Validated under high-load conditions. 10,000+ async operations with comprehensive metrics.</p>
             </div>
             <div class="perf-grid">
                 <div class="perf-card highlight">
-                    <div class="perf-mode">Async Mode</div>
-                    <div class="perf-value">3,100<span class="perf-unit">ops/sec</span></div>
+                    <div class="perf-mode">Async Mode (100 Users)</div>
+                    <div class="perf-value">205<span class="perf-unit">ops/sec</span></div>
                     <div class="perf-label">Throughput</div>
                     <div class="perf-stats">
-                        <div class="perf-stat"><div class="perf-stat-value">3.1ms</div><div class="perf-stat-label">Avg Latency</div></div>
-                        <div class="perf-stat"><div class="perf-stat-value">40ms</div><div class="perf-stat-label">P99</div></div>
+                        <div class="perf-stat"><div class="perf-stat-value">482ms</div><div class="perf-stat-label">Avg Latency</div></div>
+                        <div class="perf-stat"><div class="perf-stat-value">783ms</div><div class="perf-stat-label">P99</div></div>
                     </div>
                 </div>
                 <div class="perf-card">
-                    <div class="perf-mode">Sync Mode</div>
-                    <div class="perf-value">2,200<span class="perf-unit">ops/sec</span></div>
-                    <div class="perf-label">Throughput</div>
+                    <div class="perf-mode">Response Time P95</div>
+                    <div class="perf-value">687<span class="perf-unit">ms</span></div>
+                    <div class="perf-label">95th Percentile</div>
                     <div class="perf-stats">
-                        <div class="perf-stat"><div class="perf-stat-value">4.2ms</div><div class="perf-stat-label">Avg Latency</div></div>
-                        <div class="perf-stat"><div class="perf-stat-value">50ms</div><div class="perf-stat-label">P99</div></div>
+                        <div class="perf-stat"><div class="perf-stat-value">497ms</div><div class="perf-stat-label">P50</div></div>
+                        <div class="perf-stat"><div class="perf-stat-value">66%</div><div class="perf-stat-label">Success Rate</div></div>
                     </div>
                 </div>
             </div>
-            <p class="perf-note"><strong>✓ Zero Data Loss</strong> • Connection Pool Stability • Memory Safe • Transaction Integrity</p>
+            <p class="perf-note"><strong>✓ Connection Pool Stability</strong> • Memory Safe • Transaction Integrity • <a href="stress_test_report.html" style="color: var(--primary-light);">View Full Report</a></p>
         </div>
     </section>
 
@@ -557,9 +559,11 @@ pip install -e .</pre>
     <section class="section stats-section">
         <div class="container">
             <div class="stats-grid">
-                <div class="stat-item"><div class="stat-value">157</div><div class="stat-label">Tests Passing</div></div>
-                <div class="stat-item"><div class="stat-value">9+</div><div class="stat-label">Examples</div></div>
-                <div class="stat-item"><div class="stat-value">100K+</div><div class="stat-label">Ops Tested</div></div>
+                <div class="stat-item"><div class="stat-value">228</div><div class="stat-label">Tests Passing</div></div>
+                <div class="stat-item"><div class="stat-value">95%</div><div class="stat-label">Code Coverage</div></div>
+                <div class="stat-item"><div class="stat-value">14</div><div class="stat-label">Examples</div></div>
+                <div class="stat-item"><div class="stat-value">10K+</div><div class="stat-label">Stress Ops</div></div>
+                <div class="stat-item"><div class="stat-value">1.0.0</div><div class="stat-label">LTS Version</div></div>
                 <div class="stat-item"><div class="stat-value">3.9+</div><div class="stat-label">Python</div></div>
                 <div class="stat-item"><div class="stat-value">MIT</div><div class="stat-label">License</div></div>
             </div>
@@ -640,6 +644,7 @@ pip install -e .</pre>
                 <a href="https://github.com/wisrovi/wpostgresql" class="footer-link" target="_blank">GitHub</a>
                 <a href="https://wpostgresql.readthedocs.io/en/latest/" class="footer-link" target="_blank">Docs</a>
                 <a href="https://pypi.org/project/wpostgresql/" class="footer-link" target="_blank">PyPI</a>
+                <a href="stress_test_report.html" class="footer-link" target="_blank">Stress Test</a>
             </div>
             <p class="footer-copyright">MIT License © 2024-2026 William Steve Rodriguez Villamizar</p>
         </div>

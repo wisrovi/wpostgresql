@@ -9,15 +9,17 @@ from wpostgresql.types.sql_types import get_sql_type
 class TableSync:
     """Handles table synchronization between Pydantic models and PostgreSQL (sync)."""
 
-    def __init__(self, model, db_config: dict):
+    def __init__(self, model, db_config: dict, pool_config: Optional[dict] = None):
         """Initialize table sync.
 
         Args:
             model: Pydantic BaseModel class.
             db_config: PostgreSQL connection configuration.
+            pool_config: Optional pool configuration dictionary.
         """
         self.model = model
         self.db_config = db_config
+        self.pool_config = pool_config
         self.table_name = getattr(model, "__tablename__", model.__name__.lower())
 
     def create_if_not_exists(self):
@@ -133,16 +135,26 @@ class TableSync:
 class AsyncTableSync:
     """Handles table synchronization between Pydantic models and PostgreSQL (async)."""
 
-    def __init__(self, model, db_config: dict):
+    def __init__(self, model, db_config: dict, pool_config: Optional[dict] = None):
         """Initialize async table sync.
 
         Args:
             model: Pydantic BaseModel class.
             db_config: PostgreSQL connection configuration.
+            pool_config: Optional pool configuration dictionary.
         """
         self.model = model
         self.db_config = db_config
+        self.pool_config = pool_config
         self.table_name = getattr(model, "__tablename__", model.__name__.lower())
+
+    async def _get_async_conn(self):
+        """Get an async connection from the pool.
+
+        Returns:
+            Async connection wrapper.
+        """
+        return await get_async_connection(self.db_config)
 
     async def create_if_not_exists_async(self):
         """Create the table if it doesn't exist (async)."""

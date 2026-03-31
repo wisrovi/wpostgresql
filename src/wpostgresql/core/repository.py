@@ -52,18 +52,29 @@ class WPostgreSQL:
         db.insert(User(id=1, name="John", email="john@example.com"))
     """
 
-    def __init__(self, model: Type[BaseModel], db_config: dict):
+    def __init__(
+        self,
+        model: Type[BaseModel],
+        db_config: dict,
+        pool_config: Optional[dict] = None,
+    ):
         """Initialize the repository with a Pydantic model.
 
         Args:
             model: Pydantic BaseModel class defining the table schema.
             db_config: PostgreSQL connection configuration dictionary.
                 Expected keys: dbname, user, password, host, port.
+            pool_config: Optional pool configuration dictionary.
+                Expected keys: min_size, max_size.
+                Default: {"min_size": 2, "max_size": 20}
         """
+        from wpostgresql.core.connection import DEFAULT_POOL_CONFIG
+
         self.model = model
         self.db_config = db_config
+        self.pool_config = pool_config or DEFAULT_POOL_CONFIG
         self.table_name = getattr(model, "__tablename__", model.__name__.lower())
-        self._sync = TableSync(model, db_config)
+        self._sync = TableSync(model, db_config, self.pool_config)
 
         self._sync.create_if_not_exists()
         self._sync.sync_with_model()
