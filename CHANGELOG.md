@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0 (LTS)] - 2026-03-31 (Upcoming)
+## [1.0.0 (LTS)] - 2026-03-31
 
 ### Added
 - **Full Type Hinting**: Comprehensive static typing for both core and test modules.
