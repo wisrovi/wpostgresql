@@ -1,0 +1,17 @@
+
+# --- Quality & Pre-commit ---
+pre-commit
+mypy
+ruff
+codespell
+bandit
+interrogate
+detect-secrets
+checkov
+shellcheck-py==0.9.0.6
+pip-audit
+hadolint-bin
+
+# --- Types for Mypy ---
+types-requests
+types-setuptools

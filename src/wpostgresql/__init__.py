@@ -25,7 +25,10 @@ from wpostgresql.core.connection import (
     AsyncConnectionManager,
     AsyncTransaction,
     ConnectionManager,
+    DEFAULT_POOL_CONFIG,
     Transaction,
+    close_global_pools,
+    configure_pool,
     get_async_connection,
     get_async_transaction,
     get_connection,
@@ -43,13 +46,16 @@ from wpostgresql.exceptions import (
     WPostgreSQLError,
 )
 
-__version__ = "0.3.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "WPostgreSQL",
     "QueryBuilder",
     "ConnectionManager",
     "AsyncConnectionManager",
+    "DEFAULT_POOL_CONFIG",
+    "configure_pool",
+    "close_global_pools",
     "Transaction",
     "AsyncTransaction",
     "get_connection",

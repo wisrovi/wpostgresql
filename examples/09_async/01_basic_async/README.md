@@ -1,8 +1,8 @@
 # Async / Await (v0.3.0)
 
-Este ejemplo demuestra el uso de las operaciones asíncronas en wpostgresql.
+This example demonstrates the use of asynchronous operations in wpostgresql.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
@@ -14,14 +14,14 @@ python example.py
 import asyncio
 from wpostgresql import WPostgreSQL
 
-# Misma clase, mismos métodos + versiones async
+# Same class, same methods + async versions
 db = WPostgreSQL(User, db_config)
 
-# Métodos sync (como antes)
+# Sync methods (as before)
 db.insert(user)
 db.get_all()
 
-# Métodos async (nuevo)
+# Async methods (new)
 await db.insert_async(user)
 await db.get_all_async()
 await db.get_by_field_async(name="Alice")
@@ -29,7 +29,7 @@ await db.update_async(id, user)
 await db.delete_async(id)
 ```
 
-## Código Completo
+## Complete Code
 
 ```python
 import asyncio
@@ -52,12 +52,12 @@ db_config = {
 async def main():
     db = WPostgreSQL(Person, db_config)
     
-    # CRUD async
+    # Async CRUD
     await db.insert_async(Person(id=1, name="Alice", age=25))
     await db.insert_async(Person(id=2, name="Bob", age=30))
     
     users = await db.get_all_async()
-    print("Usuarios:", users)
+    print("Users:", users)
     
     await db.update_async(1, Person(id=1, name="Alice", age=26))
     await db.delete_async(2)
@@ -65,9 +65,9 @@ async def main():
 asyncio.run(main())
 ```
 
-## Métodos Async Disponibles
+## Available Async Methods
 
-| Método Sync | Método Async |
+| Sync Method | Async Method |
 |-------------|--------------|
 | `insert()` | `insert_async()` |
 | `get_all()` | `get_all_async()` |
@@ -83,45 +83,53 @@ asyncio.run(main())
 | `execute_transaction()` | `execute_transaction_async()` |
 | `with_transaction()` | `with_transaction_async()` |
 
-## Beneficios
+## Benefits
 
-- **No bloqueante**: Otras tareas pueden ejecutarse mientras espera la BD
-- **Alto rendimiento**: Ideal para APIs con muchas solicitudes simultáneas
-- **Concurrente**: Ejecuta múltiples consultas en paralelo
+- **Non-blocking**: Other tasks can execute while waiting for DB
+- **High performance**: Ideal for APIs with many simultaneous requests
+- **Concurrent**: Execute multiple queries in parallel
 
-## Diferencias entre Sync y Async
+## Sync vs Async Differences
 
 | Sync | Async |
 |------|-------|
 | `db.insert(user)` | `await db.insert_async(user)` |
 | `db.get_all()` | `await db.get_all_async()` |
-| Bloquea el hilo | No bloquea el hilo |
+| Blocks thread | Non-blocking thread |
 
-## Cuándo Usar Async
+## When to Use Async
 
-- APIs web con FastAPI
-- Aplicaciones con muchas conexiones simultáneas
-- Microservicios
-- Scripts de procesamiento en paralelo
+- Web APIs with FastAPI
+- Applications with many simultaneous connections
+- Microservices
+- Parallel processing scripts
 
-## Requisitos
+## Requirements
 
 ```bash
 pip install wpostgresql
-# O instalando dependencias directamente:
+# Or installing dependencies directly:
 pip install psycopg[binary]>=3.1.0 psycopg_pool>=3.1.0
 ```
 
 ## Backwards Compatibility
 
-Los 18,000 usuarios sync existentes pueden actualizar sin cambios:
+Existing 18,000 sync users can upgrade without changes:
 
 ```python
-# Funciona igual que antes
+# Works the same as before
 db.insert(user)
 users = db.get_all()
 
-# Y ahora también puedes usar async si lo necesitas
+# And now you can also use async if needed
 await db.insert_async(user)
 users = await db.get_all_async()
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

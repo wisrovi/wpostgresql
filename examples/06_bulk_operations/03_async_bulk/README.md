@@ -1,14 +1,14 @@
-# Operaciones Bulk Asíncronas
+# Async Bulk Operations
 
-Este ejemplo muestra cómo realizar operaciones en lote con async/await.
+This example demonstrates how to perform bulk operations with async/await.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Código
+## Code
 
 ```python
 import asyncio
@@ -23,7 +23,7 @@ class Person(BaseModel):
 async def main():
     db = WPostgreSQL(Person, db_config)
     
-    # Insertar múltiples registros
+    # Insert multiple records
     users = [
         Person(id=1, name="Alice", age=25),
         Person(id=2, name="Bob", age=30),
@@ -31,27 +31,27 @@ async def main():
     ]
     await db.insert_many_async(users)
     
-    # Actualizar múltiples
+    # Update multiple
     await db.update_many_async([
         (Person(id=1, name="Alice", age=26), 1),
         (Person(id=2, name="Bob", age=31), 2),
     ])
     
-    # Eliminar múltiples
+    # Delete multiple
     await db.delete_many_async([3])
 
 asyncio.run(main())
 ```
 
-## Métodos Async
+## Async Methods
 
-| Método | Descripción |
+| Method | Description |
 |--------|-------------|
-| `insert_many_async(data_list)` | Inserta múltiples registros |
-| `update_many_async(updates)` | Actualiza múltiples registros |
-| `delete_many_async(record_ids)` | Elimina múltiples registros |
+| `insert_many_async(data_list)` | Insert multiple records |
+| `update_many_async(updates)` | Update multiple records |
+| `delete_many_async(record_ids)` | Delete multiple records |
 
-## Diferencias con Sync
+## Differences with Sync
 
 | Sync | Async |
 |------|-------|
@@ -59,10 +59,18 @@ asyncio.run(main())
 | `db.update_many([(...)])` | `await db.update_many_async([(...)])` |
 | `db.delete_many([1,2])` | `await db.delete_many_async([1,2])` |
 
-## Resultado Esperado
+## Expected Output
 
 ```
-Insertados: 5
-Actualizados
-Restantes: 3
+Inserted: 5
+Updated
+Remaining: 3
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

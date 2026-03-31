@@ -26,7 +26,7 @@ def load_model(model_path: str) -> type[BaseModel]:
 
 
 @click.group()
-@click.version_option(version="0.2.0")
+@click.version_option(version="0.3.0")
 def cli():
     """wpostgresql - PostgreSQL ORM CLI tool."""
     pass

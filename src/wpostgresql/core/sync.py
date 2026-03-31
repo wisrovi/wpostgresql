@@ -9,16 +9,18 @@ from wpostgresql.types.sql_types import get_sql_type
 class TableSync:
     """Handles table synchronization between Pydantic models and PostgreSQL (sync)."""
 
-    def __init__(self, model, db_config: dict):
+    def __init__(self, model, db_config: dict, pool_config: Optional[dict] = None):
         """Initialize table sync.
 
         Args:
             model: Pydantic BaseModel class.
             db_config: PostgreSQL connection configuration.
+            pool_config: Optional pool configuration dictionary.
         """
         self.model = model
         self.db_config = db_config
-        self.table_name = model.__name__.lower()
+        self.pool_config = pool_config
+        self.table_name = getattr(model, "__tablename__", model.__name__.lower())
 
     def create_if_not_exists(self):
         """Create the table if it doesn't exist."""
@@ -133,16 +135,26 @@ class TableSync:
 class AsyncTableSync:
     """Handles table synchronization between Pydantic models and PostgreSQL (async)."""
 
-    def __init__(self, model, db_config: dict):
+    def __init__(self, model, db_config: dict, pool_config: Optional[dict] = None):
         """Initialize async table sync.
 
         Args:
             model: Pydantic BaseModel class.
             db_config: PostgreSQL connection configuration.
+            pool_config: Optional pool configuration dictionary.
         """
         self.model = model
         self.db_config = db_config
-        self.table_name = model.__name__.lower()
+        self.pool_config = pool_config
+        self.table_name = getattr(model, "__tablename__", model.__name__.lower())
+
+    async def _get_async_conn(self):
+        """Get an async connection from the pool.
+
+        Returns:
+            Async connection wrapper.
+        """
+        return await get_async_connection(self.db_config)
 
     async def create_if_not_exists_async(self):
         """Create the table if it doesn't exist (async)."""
@@ -234,7 +246,8 @@ class AsyncTableSync:
         unique_str = "UNIQUE " if unique else ""
         query = f"CREATE {unique_str}INDEX IF NOT EXISTS {index_name} ON {self.table_name} ({columns_str})"
 
-        async with get_async_connection(self.db_config) as conn:
+        conn = await get_async_connection(self.db_config)
+        async with conn:
             async with conn.cursor() as cursor:
                 await cursor.execute(query)
             await conn.commit()
@@ -246,7 +259,8 @@ class AsyncTableSync:
             index_name: Name of the index to drop.
         """
         query = f"DROP INDEX IF EXISTS {index_name}"
-        async with get_async_connection(self.db_config) as conn:
+        conn = await get_async_connection(self.db_config)
+        async with conn:
             async with conn.cursor() as cursor:
                 await cursor.execute(query)
             await conn.commit()

@@ -1,29 +1,37 @@
-# Paginación con LIMIT y OFFSET
+# Pagination with LIMIT and OFFSET
 
-Este ejemplo muestra cómo paginar resultados usando limit y offset.
+This example demonstrates how to paginate results using limit and offset.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## API propuesta
+## Proposed API
 
 ```python
-# Obtener solo los primeros 5 registros
+# Get only first 5 records
 db.get_all(limit=5)
 
-# Saltar los primeros 5 y obtener 3
+# Skip first 5 and get 3
 db.get_all(offset=5, limit=3)
 
-# Offset sin limit (saltar primeros N)
+# Offset without limit (skip first N)
 db.get_all(offset=10)
 ```
 
-## Resultado esperado
+## Expected Output
 
 ```
-Primeros 5 usuarios: [User(id=1, ...), User(id=2, ...), User(id=3, ...), User(id=4, ...), User(id=5, ...)]
-Saltar primeros 5, mostrar 3: [User(id=6, ...), User(id=7, ...), User(id=8, ...)]
+First 5 users: [User(id=1, ...), User(id=2, ...), User(id=3, ...), User(id=4, ...), User(id=5, ...)]
+Skip first 5, show 3: [User(id=6, ...), User(id=7, ...), User(id=8, ...)]
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

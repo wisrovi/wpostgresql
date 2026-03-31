@@ -1,4 +1,4 @@
-import psycopg2
+import psycopg
 import pytest
 from pydantic import BaseModel, Field
 
@@ -23,7 +23,7 @@ def test_not_null_constraint():
     db = WPostgreSQL(Person, DB_CONFIG)
     db.insert(Person(id=1, name="Juan", age=30))
 
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = psycopg.connect(**DB_CONFIG)
     conn.autocommit = True
     cursor = conn.cursor()
     with pytest.raises(Exception):

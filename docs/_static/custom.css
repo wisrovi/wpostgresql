@@ -1,0 +1,424 @@
+/* Custom CSS for wpostgresql documentation */
+
+/* Hero Section Styles */
+.bd-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4rem 0;
+    margin-bottom: 2rem;
+}
+
+/* Card styles */
+.wpostgresql-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.wpostgresql-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Feature icons */
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #667eea;
+}
+
+/* Code blocks */
+.highlight {
+    border-radius: 8px;
+    border: 1px solid #e1e4e8;
+}
+
+/* Admonitions */
+.admonition {
+    border-radius: 8px;
+    border-left-width: 4px;
+}
+
+.admonition.tip {
+    border-color: #28a745;
+}
+
+.admonition.warning {
+    border-color: #ffc107;
+}
+
+.admonition.danger {
+    border-color: #dc3545;
+}
+
+.admonition.note {
+    border-color: #17a2b8;
+}
+
+/* Tab styles */
+.sphinx-tabs-tab {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.sphinx-tabs-tab:hover {
+    background-color: #e9ecef;
+}
+
+.sphinx-tabs-tab[aria-selected="true"] {
+    background-color: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.sphinx-tabs-panel {
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1.5rem;
+    background-color: #fff;
+}
+
+/* Badge styles */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.badge-primary {
+    color: #fff;
+    background-color: #667eea;
+}
+
+.badge-success {
+    color: #fff;
+    background-color: #28a745;
+}
+
+.badge-warning {
+    color: #212529;
+    background-color: #ffc107;
+}
+
+/* Button styles */
+.btn-primary {
+    background-color: #667eea;
+    border-color: #667eea;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: #5a6fd8;
+    border-color: #5a6fd8;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
+    text-decoration: none;
+}
+
+/* Navigation styles */
+.bd-sidebar {
+    border-right: 1px solid #e1e4e8;
+}
+
+.bd-sidenav {
+    background-color: #f8f9fa;
+}
+
+.bd-sidenav .bd-sidenav__item {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.bd-sidenav .bd-sidenav__item:hover {
+    background-color: #e9ecef;
+    border-left-color: #667eea;
+}
+
+.bd-sidenav .bd-sidenav__item.active {
+    background-color: #e7f1ff;
+    border-left-color: #667eea;
+    font-weight: 600;
+}
+
+/* Header styles */
+.bd-header {
+    background-color: #667eea;
+    color: white;
+    border-bottom: none;
+}
+
+.bd-header a {
+    color: white;
+    text-decoration: none;
+}
+
+.bd-header a:hover {
+    color: #f8f9fa;
+}
+
+/* Footer styles */
+.bd-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e1e4e8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .bd-hero {
+        padding: 2rem 0;
+    }
+    
+    .feature-icon {
+        font-size: 2rem;
+    }
+}
+
+/* Custom table styles */
+table.docutils {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+table.docutils th {
+    background-color: #667eea;
+    color: white;
+    font-weight: 600;
+}
+
+table.docutils td {
+    padding: 0.75rem;
+    vertical-align: top;
+}
+
+/* Definition list styles */
+dl.py dt {
+    background-color: #f8f9fa;
+    border-left: 4px solid #667eea;
+    padding: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+dl.py dd {
+    margin-left: 1.5rem;
+    padding: 0.5rem 0;
+}
+
+/* Search box styles */
+.bd-search {
+    border-radius: 20px;
+    border: 1px solid #e1e4e8;
+    background-color: #f8f9fa;
+}
+
+.bd-search:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+}
+
+/* Mermaid diagram styles */
+.mermaid {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+/* Copy button styles */
+.copybtn {
+    background-color: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+.copybtn:hover {
+    background-color: #5a6fd8;
+    border-color: #5a6fd8;
+}
+
+/* Gallery styles */
+.gallery-item {
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.gallery-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.gallery-item h4 {
+    color: #667eea;
+    margin-top: 0;
+}
+
+/* Code output styles */
+.code-output {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+    font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+    font-size: 0.875rem;
+}
+
+/* Progress indicator */
+.step-indicator {
+    display: inline-flex;
+    align-items: center;
+    background-color: #667eea;
+    color: white;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+/* Version badge */
+.version-badge {
+    background-color: #28a745;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Feature highlight */
+.feature-highlight {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border-left: 4px solid #667eea;
+}
+
+/* Code snippet with explanation */
+.code-with-explanation {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+@media (max-width: 768px) {
+    .code-with-explanation {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Animation for cards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Custom admonition for pro-tips */
+.pro-tip {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.pro-tip .admonition-title {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Custom admonition for warnings */
+.warning-box {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.warning-box .admonition-title {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+/* Example output styling */
+.example-output {
+    background-color: #f8f9fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0 1.5rem 0;
+    font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+}
+
+.example-output::before {
+    content: "Output:";
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #667eea;
+}
+
+/* Section separators */
+.section-separator {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #667eea, transparent);
+    margin: 2rem 0;
+}
+
+/* Highlight important text */
+.highlight-text {
+    background-color: rgba(102, 126, 234, 0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    font-weight: 600;
+}

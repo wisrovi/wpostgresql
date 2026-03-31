@@ -1,14 +1,14 @@
-# Transacciones Asíncronas
+# Async Transactions
 
-Este ejemplo muestra cómo usar transacciones async para operaciones atómicas.
+This example demonstrates how to use async transactions for atomic operations.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Código
+## Code
 
 ```python
 import asyncio
@@ -31,28 +31,28 @@ async def main():
             ("UPDATE person SET balance = balance - 100 WHERE id = 1", None),
             ("UPDATE person SET balance = balance + 100 WHERE id = 2", None),
         ])
-        print("Transacción exitosa")
+        print("Transaction successful")
     except Exception as e:
-        print("Transacción fallida:", e)
+        print("Transaction failed:", e)
 
 asyncio.run(main())
 ```
 
-## Métodos Async
+## Async Methods
 
-| Método | Descripción |
+| Method | Description |
 |--------|-------------|
-| `execute_transaction_async(operations)` | Ejecuta múltiples operaciones en transacción |
-| `with_transaction_async(func)` | Ejecuta función dentro de transacción |
+| `execute_transaction_async(operations)` | Execute multiple operations in transaction |
+| `with_transaction_async(func)` | Execute function within transaction |
 
-## Diferencias con Sync
+## Differences with Sync
 
 | Sync | Async |
 |------|-------|
 | `db.execute_transaction([...])` | `await db.execute_transaction_async([...])` |
 | `db.with_transaction(func)` | `await db.with_transaction_async(func)` |
 
-## Ejemplo con with_transaction_async
+## Example with with_transaction_async
 
 ```python
 async def transfer(txn):
@@ -62,10 +62,18 @@ async def transfer(txn):
 await db.with_transaction_async(transfer)
 ```
 
-## Resultado Esperado
+## Expected Output
 
 ```
-Transacción exitosa
-Saldo final Alice: 900
-Saldo final Bob: 600
+Transaction successful
+Final balance Alice: 900
+Final balance Bob: 600
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

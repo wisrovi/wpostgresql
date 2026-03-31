@@ -1,26 +1,34 @@
-# Update - Actualizar Registros
+# Update - Update Records
 
-Este ejemplo muestra cómo actualizar un registro existente.
+This example demonstrates how to update an existing record.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Explicación
+## Explanation
 
-El método `update(record_id, data)` recibe:
-- `record_id`: El ID del registro a actualizar
-- `data`: Un objeto BaseModel con los nuevos valores
+The `update(record_id, data)` method receives:
+- `record_id`: The ID of the record to update
+- `data`: A BaseModel object with the new values
 
-## Nota
+## Note
 
-El método `update` actualiza el registro donde `id = record_id`.
+The `update` method updates the record where `id = record_id`.
 
-## Resultado esperado
+## Expected Output
 
 ```
-Antes de actualizar: [User(id=1, name='Juan Pérez', age=30, is_active=True)]
-Después de actualizar: [User(id=1, name='Juan Pérez', age=31, is_active=False)]
+Before update: [User(id=1, name='John Doe', age=30, is_active=True)]
+After update: [User(id=1, name='John Doe', age=31, is_active=False)]
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

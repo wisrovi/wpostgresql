@@ -1,23 +1,31 @@
-# Add Column - Añadir Nuevas Columnas
+# Add Column - Add New Columns
 
-Este ejemplo muestra cómo añadir nuevas columnas al modelo y sincronizar automáticamente con la base de datos.
+This example demonstrates how to add new columns to the model and automatically synchronize with the database.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Explicación
+## Explanation
 
-1. Se crea el modelo inicial sin el campo `email`
-2. Se insertan registros con ese modelo
-3. Se redefine el modelo añadiendo el campo `email`
-4. Al crear una nueva instancia de `WPostgreSQL`, la tabla se sincroniza automáticamente
-5. Se pueden insertar registros con el nuevo campo
+1. Initial model created without `email` field
+2. Records are inserted with that model
+3. Model is redefined with `email` field added
+4. When creating a new `WPostgreSQL` instance, the table is automatically synchronized
+5. Records can be inserted with the new field
 
-## Resultado esperado
+## Expected Output
 
 ```
-Usuarios: [User(id=1, name='Ana López', age=25, is_active=True, email=''), User(id=2, name='Carlos Ruiz', age=30, is_active=True, email='carlos@example.com')]
+Users: [User(id=1, name='Jane Doe', age=25, is_active=True, email=''), User(id=2, name='John Smith', age=30, is_active=True, email='john@example.com')]
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

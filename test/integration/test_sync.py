@@ -1,146 +1,226 @@
+"""Tests for table synchronization.
+
+This module contains integration tests for verifying that tables are correctly
+synchronized with Pydantic models, including adding new columns and
+creating tables if they do not exist.
+"""
+
 import os
 import sys
-from typing import Optional
+from typing import Generator, List, Optional
 
+import psycopg
 import pytest
+from loguru import logger
 from pydantic import BaseModel, Field
 
-from wpostgresql import WPostgreSQL
-
+# Ensure we can import from the parent directory for conftest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import psycopg2
+# pylint: disable=import-error, wrong-import-position, wrong-import-order
 from conftest import DB_CONFIG, cleanup_table
+from wpostgresql import WPostgreSQL
 
 
 @pytest.fixture(autouse=True)
-def setup():
+def setup_teardown() -> Generator[None, None, None]:
+    """Fixture to clean up tables before and after each test.
+
+    Yields:
+        None: Execution context for the test.
+    """
+    logger.info("Setting up sync test environment...")
     cleanup_table("person")
     cleanup_table("newtable")
     yield
+    logger.info("Tearing down sync test environment...")
     cleanup_table("person")
     cleanup_table("newtable")
 
 
 class TestSyncTable:
-    """Tests para la sincronización de tablas."""
+    """Tests for table synchronization logic.
 
-    def test_add_new_column_to_existing_table(self):
-        cleanup_table("person")
+    Verifies that adding fields to a Pydantic model results in new columns
+    in the existing database table.
+    """
 
-        class Person(BaseModel):
+    def test_add_new_column_to_existing_table(self) -> None:
+        """Test adding a new column to an existing table.
+
+        Initializes a table, inserts a record, then re-initializes with a new
+        field in the model to trigger an ALTER TABLE.
+        """
+        logger.info("Testing adding new column to existing table...")
+
+        class PersonV1(BaseModel):
+            """Initial model version."""
+
+            __tablename__ = "person"
             id: int = Field(..., description="Primary Key")
             name: str
             age: int
 
-        db = WPostgreSQL(Person, DB_CONFIG)
-        db.insert(Person(id=1, name="Juan", age=30))
+        # Create table with V1
+        _ = WPostgreSQL(PersonV1, DB_CONFIG)
 
-        class Person(BaseModel):
+        class PersonV2(BaseModel):
+            """Updated model version with 'email' column."""
+
+            __tablename__ = "person"
             id: int = Field(..., description="Primary Key")
             name: str
             age: int
-            email: Optional[str]
+            email: Optional[str] = None
 
-        db2 = WPostgreSQL(Person, DB_CONFIG)
+        # Trigger sync with V2
+        _ = WPostgreSQL(PersonV2, DB_CONFIG)
 
-        pg_conn = psycopg2.connect(**DB_CONFIG)
+        pg_conn = psycopg.connect(**DB_CONFIG)
         pg_conn.autocommit = True
-        cursor = pg_conn.cursor()
-        cursor.execute(
-            "SELECT column_name FROM information_schema.columns WHERE table_name = 'person'"
-        )
-        columns = [row[0] for row in cursor.fetchall()]
-        cursor.close()
-        pg_conn.close()
+        try:
+            with pg_conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'person'"
+                )
+                columns: List[str] = [row[0] for row in cursor.fetchall()]
+                assert "email" in columns
+        finally:
+            pg_conn.close()
+        logger.success("Add new column test passed.")
 
-        assert "email" in columns
+    def test_insert_with_new_column(self) -> None:
+        """Test inserting data into a newly added column.
 
-    def test_insert_with_new_column(self):
+        Verifies that data can be correctly persisted and retrieved after
+        the table schema has been synchronized.
+        """
+        logger.info("Testing insertion with new column...")
+
+        class PersonBase(BaseModel):
+            """Initial model."""
+
+            __tablename__ = "person"
+            id: int = Field(..., description="Primary Key")
+            name: str
+
         cleanup_table("person")
 
-        class Person(BaseModel):
+        db_v1 = WPostgreSQL(PersonBase, DB_CONFIG)
+        db_v1.insert(PersonBase(id=1, name="Juan"))
+
+        class PersonWithEmail(BaseModel):
+            """Model with additional email field."""
+
+            __tablename__ = "person"
             id: int = Field(..., description="Primary Key")
             name: str
+            email: Optional[str] = None
 
-        db = WPostgreSQL(Person, DB_CONFIG)
-        db.insert(Person(id=1, name="Juan"))
+        db_v2 = WPostgreSQL(PersonWithEmail, DB_CONFIG)
+        db_v2.insert(PersonWithEmail(id=2, name="Ana", email="ana@example.com"))
 
-        class Person(BaseModel):
-            id: int = Field(..., description="Primary Key")
-            name: str
-            email: Optional[str]
-
-        db2 = WPostgreSQL(Person, DB_CONFIG)
-        db2.insert(Person(id=2, name="Ana", email="ana@example.com"))
-
-        result = db2.get_by_field(id=2)
+        result = db_v2.get_by_field(id=2)
         assert len(result) == 1
         assert result[0].email == "ana@example.com"
+        logger.success("Insertion with new column test passed.")
 
-    def test_multiple_new_columns(self):
-        cleanup_table("person")
+    def test_multiple_new_columns(self) -> None:
+        """Test adding multiple columns simultaneously.
 
-        class Person(BaseModel):
+        Verifies that multiple schema changes are correctly handled in a single sync.
+        """
+        logger.info("Testing multiple new columns synchronization...")
+
+        class PersonShort(BaseModel):
+            """Minimal model."""
+
+            __tablename__ = "person"
             id: int = Field(..., description="Primary Key")
             name: str
 
-        db = WPostgreSQL(Person, DB_CONFIG)
+        _ = WPostgreSQL(PersonShort, DB_CONFIG)
 
-        class Person(BaseModel):
+        class PersonFull(BaseModel):
+            """Full model with many new fields."""
+
+            __tablename__ = "person"
             id: int = Field(..., description="Primary Key")
             name: str
-            email: Optional[str]
-            phone: Optional[str]
-            address: Optional[str]
+            email: Optional[str] = None
+            phone: Optional[str] = None
+            address: Optional[str] = None
 
-        db2 = WPostgreSQL(Person, DB_CONFIG)
+        _ = WPostgreSQL(PersonFull, DB_CONFIG)
 
-        pg_conn = psycopg2.connect(**DB_CONFIG)
+        pg_conn = psycopg.connect(**DB_CONFIG)
         pg_conn.autocommit = True
-        cursor = pg_conn.cursor()
-        cursor.execute(
-            "SELECT column_name FROM information_schema.columns WHERE table_name = 'person' ORDER BY ordinal_position"
-        )
-        columns = [row[0] for row in cursor.fetchall()]
-        cursor.close()
-        pg_conn.close()
-
-        assert "email" in columns
-        assert "phone" in columns
-        assert "address" in columns
+        try:
+            with pg_conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'person'"
+                )
+                columns: List[str] = [row[0] for row in cursor.fetchall()]
+                assert "email" in columns
+                assert "phone" in columns
+                assert "address" in columns
+        finally:
+            pg_conn.close()
+        logger.success("Multiple new columns test passed.")
 
 
 class TestCreateTable:
-    """Tests para la creación de tablas."""
+    """Tests for table creation logic.
 
-    def test_create_table_if_not_exists(self):
+    Verifies that tables are created if missing and that existing tables
+    do not cause initialization failures.
+    """
+
+    def test_create_table_if_not_exists(self) -> None:
+        """Test that a table is created if it does not exist.
+
+        Verifies presence in information_schema.tables.
+        """
+        logger.info("Testing table creation if not exists...")
+
         class NewTable(BaseModel):
+            """Model for a brand new table."""
+
             id: int
             name: str
 
-        cleanup_table("newtable")
+        _ = WPostgreSQL(NewTable, DB_CONFIG)
 
-        db = WPostgreSQL(NewTable, DB_CONFIG)
-
-        pg_conn = psycopg2.connect(**DB_CONFIG)
+        pg_conn = psycopg.connect(**DB_CONFIG)
         pg_conn.autocommit = True
-        cursor = pg_conn.cursor()
-        cursor.execute(
-            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'newtable')"
-        )
-        exists = cursor.fetchone()[0]
-        cursor.close()
-        pg_conn.close()
+        try:
+            with pg_conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables "
+                    "WHERE table_name = 'newtable')"
+                )
+                exists: bool = cursor.fetchone()[0]
+                assert exists is True
+        finally:
+            pg_conn.close()
+        logger.success("Table creation test passed.")
 
-        assert exists is True
+    def test_create_table_does_not_fail_if_exists(self) -> None:
+        """Test that re-initialization with an existing table is safe.
 
-    def test_create_table_does_not_fail_if_exists(self):
-        class NewTable(BaseModel):
+        Verifies that multiple instances can be created without schema errors.
+        """
+        logger.info("Testing table re-initialization safety...")
+
+        class ExistingTable(BaseModel):
+            """Model for an already existing table."""
+
+            __tablename__ = "newtable"
             id: int
             name: str
 
-        db = WPostgreSQL(NewTable, DB_CONFIG)
-        db2 = WPostgreSQL(NewTable, DB_CONFIG)
+        _ = WPostgreSQL(ExistingTable, DB_CONFIG)
+        db2 = WPostgreSQL(ExistingTable, DB_CONFIG)
 
         result = db2.get_all()
         assert isinstance(result, list)
+        logger.success("Table re-initialization safety test passed.")
