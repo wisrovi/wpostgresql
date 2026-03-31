@@ -128,6 +128,7 @@
             backdrop-filter: blur(10px); box-shadow: var(--shadow-xl);
         }
         .hero-code .comment { color: #8b949e; }
+        .hero-code pre { margin: 0; }
         .hero-code .keyword { color: #ff7b72; }
         .hero-code .function { color: #d2a8ff; }
         .hero-code .string { color: #a5d6ff; }
@@ -188,7 +189,9 @@
         .install-card h3 { font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
         .install-card h3 svg { width: 20px; height: 20px; color: var(--primary-light); }
         .install-code { background: rgba(13, 17, 23, 0.8); border-radius: 10px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; color: #c9d1d9; overflow-x: auto; }
+        .install-code pre { margin: 0; }
         .install-code .comment { color: #8b949e; }
+        .install-code .keyword { color: #ff7b72; }
 
         .quickstart-section { background: var(--bg-primary); }
         .qs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
@@ -199,6 +202,9 @@
         .qs-header h3 { font-size: 1rem; font-weight: 600; }
         .qs-body { padding: 1.5rem; }
         .qs-code { background: rgba(13, 17, 23, 0.8); border-radius: 10px; padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #c9d1d9; overflow-x: auto; }
+        .qs-code pre { margin: 0; }
+        .qs-code .keyword { color: #ff7b72; }
+        .qs-code .comment { color: #8b949e; }
 
         .examples-section { background: var(--bg-secondary); }
         .examples-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
@@ -344,7 +350,7 @@
             </div>
             <div class="hero-code-container">
                 <div class="hero-code">
-<span class="comment"># Install</span>
+<pre><span class="comment"># Install</span>
 pip install wpostgresql
 
 <span class="comment"># Define your model</span>
@@ -359,7 +365,7 @@ pip install wpostgresql
 <span class="comment"># Create database - table auto-created!</span>
 db = WPostgreSQL(User, db_config)
 db.insert(User(id=<span class="number">1</span>, name=<span class="string">"John"</span>, email=<span class="string">"john@example.com"</span>))
-users = db.get_all()  <span class="comment"># Done!</span>
+users = db.get_all()  <span class="comment"># Done!</span></pre>
                 </div>
             </div>
         </div>
@@ -450,10 +456,10 @@ users = db.get_all()  <span class="comment"># Done!</span>
                     <div class="qs-header"><div class="qs-header-icon"><span>1</span></div><h3>Basic CRUD</h3></div>
                     <div class="qs-body">
                         <div class="qs-code">
-<span class="keyword">from</span> wpostgresql <span class="keyword">import</span> WPostgreSQL
+<pre><span class="keyword">from</span> wpostgresql <span class="keyword">import</span> WPostgreSQL
 db = WPostgreSQL(Model, config)
 db.insert(record)
-users = db.get_all()
+users = db.get_all()</pre>
                         </div>
                     </div>
                 </div>
@@ -461,8 +467,8 @@ users = db.get_all()
                     <div class="qs-header"><div class="qs-header-icon"><span>2</span></div><h3>Async Operations</h3></div>
                     <div class="qs-body">
                         <div class="qs-code">
-<span class="keyword">await</span> db.insert_async(rec)
-users = <span class="keyword">await</span> db.get_all_async()
+<pre><span class="keyword">await</span> db.insert_async(rec)
+users = <span class="keyword">await</span> db.get_all_async()</pre>
                         </div>
                     </div>
                 </div>
@@ -470,9 +476,9 @@ users = <span class="keyword">await</span> db.get_all_async()
                     <div class="qs-header"><div class="qs-header-icon"><span>3</span></div><h3>Auto Pooling</h3></div>
                     <div class="qs-body">
                         <div class="qs-code">
-<span class="comment"># Pooling is automatic!</span>
+<pre><span class="comment"># Pooling is automatic!</span>
 <span class="comment"># Just use the library</span>
-db = WPostgreSQL(Model, config)
+db = WPostgreSQL(Model, config)</pre>
                         </div>
                     </div>
                 </div>
@@ -489,19 +495,19 @@ db = WPostgreSQL(Model, config)
             <div class="install-grid">
                 <div class="install-card">
                     <h3><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>PyPI (Recommended)</h3>
-                    <div class="install-code">pip install wpostgresql</div>
+                    <div class="install-code"><pre>pip install wpostgresql</pre></div>
                 </div>
                 <div class="install-card">
                     <h3><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>From Source</h3>
                     <div class="install-code">
-<span class="comment"># Clone and install</span>
+<pre><span class="comment"># Clone and install</span>
 git clone https://github.com/wisrovi/wpostgresql
-pip install -e .
+pip install -e .</pre>
                     </div>
                 </div>
                 <div class="install-card">
                     <h3><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>Dev Dependencies</h3>
-                    <div class="install-code">pip install -e ".[dev]"</div>
+                    <div class="install-code"><pre>pip install -e ".[dev]"</pre></div>
                 </div>
             </div>
         </div>
