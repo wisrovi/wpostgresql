@@ -8,4 +8,5 @@
    pagination
    bulk_operations
    relationships
+   stress_test
    advanced_features
