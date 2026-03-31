@@ -2,6 +2,5 @@ sphinx
 sphinx-autobuild
 sphinx-copybutton
 sphinx-sitemap
-sphinx.ext.intersphinx
 myst-parser
 furo
