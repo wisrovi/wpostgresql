@@ -24,9 +24,10 @@ db.insert(Person(id=2, name="Bob", status="active"))
 db.insert(Person(id=3, name="Charlie", status="active"))
 
 updates = [
-    {"id": 1, "status": "inactive"},
-    {"id": 2, "status": "inactive"},
+    (Person(id=1, name="Alice", status="inactive"), 1),
+    (Person(id=2, name="Bob", status="inactive"), 2),
 ]
-db.update_many(updates, "status")
+count = db.update_many(updates)
 
-print("Usuarios actualizados:", db.get_all())
+print(f"Usuarios actualizados: {count}")
+print("Todos los usuarios:", db.get_all())

@@ -1,8 +1,9 @@
 from pydantic import BaseModel
+from loguru import logger
 
-from wpostgresql import WPostgreSQL, configure_logging
+from wpostgresql import WPostgreSQL
 
-configure_logging(level="DEBUG", format="json")
+logger.add("app.log", rotation="500 MB", level="DEBUG")
 
 db_config = {
     "dbname": "wpostgresql",
@@ -21,7 +22,15 @@ class Person(BaseModel):
 
 db = WPostgreSQL(Person, db_config)
 
+logger.info("Insertando usuario")
 db.insert(Person(id=1, name="Alice", age=25))
-db.get_all()
+
+logger.info("Consultando usuarios")
+users = db.get_all()
+logger.debug(f"Usuarios encontrados: {len(users)}")
+
+logger.info("Actualizando usuario")
 db.update(1, Person(id=1, name="Alice", age=26))
+
+logger.info("Eliminando usuario")
 db.delete(1)

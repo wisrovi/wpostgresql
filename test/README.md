@@ -6,12 +6,17 @@ Tests unitarios y de integración para la librería wpostgresql.
 
 ```
 test/
-├── conftest.py           # Configuración compartida
-├── README.md            # Este archivo
-├── unit/                # Tests unitarios
+├── conftest.py              # Configuración compartida
+├── README.md                # Este archivo
+├── unit/                    # Tests unitarios
+│   ├── test_cli.py
+│   ├── test_connection.py
+│   ├── test_query_builder.py
+│   ├── test_repository_new_features.py
+│   ├── test_restrictions.py
 │   ├── test_sql_types.py
-│   └── test_restrictions.py
-└── integration/         # Tests de integración
+│   └── test_sync_indexes.py
+└── integration/             # Tests de integración
     ├── test_crud.py
     └── test_sync.py
 ```
@@ -34,11 +39,16 @@ python -m pytest test/ --cov=wpostgresql --cov-report=html
 
 ## Tests disponibles
 
-### Unitarios
-| Archivo | Descripción |
-|---------|-------------|
-| test_sql_types.py | Tests para mapeo de tipos Pydantic → SQL |
-| test_restrictions.py | Tests para restricciones (PK, UNIQUE, NOT NULL) |
+### Unitarios (89 tests)
+| Archivo | Tests | Descripción |
+|---------|-------|-------------|
+| test_cli.py | 14 | CLI tool tests |
+| test_connection.py | 15 | Connection and Transaction tests |
+| test_query_builder.py | 22 | QueryBuilder tests |
+| test_repository_new_features.py | 21 | CRUD, pagination, bulk, transactions |
+| test_restrictions.py | 3 | PK, UNIQUE, NOT NULL |
+| test_sql_types.py | 5 | SQL type mapping |
+| test_sync_indexes.py | 9 | Table sync and indexes |
 
 ### Integración
 | Archivo | Descripción |
@@ -49,7 +59,17 @@ python -m pytest test/ --cov=wpostgresql --cov-report=html
 ## Requisitos
 
 ```bash
-pip install pytest pytest-cov
+pip install -e ".[dev]"
+```
+
+## Dependencias Actualizadas (v0.3.0)
+
+```toml
+psycopg[binary]>=3.1.0
+psycopg_pool>=3.1.0
+pydantic>=2.0.0
+loguru>=0.7.0
+click>=8.0.0
 ```
 
 ## Base de datos
@@ -57,7 +77,7 @@ pip install pytest pytest-cov
 Los tests requieren PostgreSQL. Para levantarla:
 
 ```bash
-cd enviroment
+cd docker
 docker-compose up -d
 ```
 

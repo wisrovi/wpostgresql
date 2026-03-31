@@ -31,10 +31,24 @@ class OperationError(WPostgreSQLError):
     pass
 
 
+class SQLInjectionError(WPostgreSQLError):
+    """Exception raised when SQL injection is detected."""
+
+    pass
+
+
+class TransactionError(WPostgreSQLError):
+    """Exception raised for transaction errors."""
+
+    pass
+
+
 __all__ = [
     "WPostgreSQLError",
     "ConnectionError",
     "TableSyncError",
     "ValidationError",
     "OperationError",
+    "SQLInjectionError",
+    "TransactionError",
 ]
