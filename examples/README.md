@@ -15,12 +15,12 @@ examples/
 ├── 01_crud/              # Ejemplos CRUD
 ├── 02_new_columns/      # Ejemplos columnas dinámicas
 ├── 03_restrictions/      # Ejemplos restricciones
-├── 04_pagination/        # ⏳ Pendiente implementación
-├── 05_transactions/      # ⏳ Pendiente implementación
-├── 06_bulk_operations/  # ⏳ Pendiente implementación
-├── 07_connection_pooling/ # ⏳ Pendiente implementación
-├── 08_logging/          # ⏳ Pendiente implementación
-└── 09_async/            # ⏳ Pendiente implementación
+├── 04_pagination/        # Paginación
+├── 05_transactions/      # Transacciones
+├── 06_bulk_operations/  # Operaciones en lote
+├── 07_connection_pooling/ # Pool de conexiones
+├── 08_logging/          # Logging
+└── 09_async/            # Async/Await
 ```
 
 ---
@@ -47,34 +47,34 @@ examples/
 | [02_unique](./03_restrictions/02_unique/) | Valores únicos |
 | [03_not_null](./03_restrictions/03_not_null/) | Campos obligatorios |
 
-### 04_pagination - Paginación ⭐ Nuevo
+### 04_pagination - Paginación
 | Ejemplo | Descripción |
 |---------|-------------|
 | [01_limit_offset](./04_pagination/01_limit_offset/) | Limitar y offset de resultados |
 | [02_page_number](./04_pagination/02_page_number/) | Paginación por número de página |
 
-### 05_transactions - Transacciones ⭐ Nuevo
+### 05_transactions - Transacciones
 | Ejemplo | Descripción |
 |---------|-------------|
 | [01_basic_transaction](./05_transactions/01_basic_transaction/) | Transacciones atómicas |
 
-### 06_bulk_operations - Operaciones en Lote ⭐ Nuevo
+### 06_bulk_operations - Operaciones en Lote
 | Ejemplo | Descripción |
 |---------|-------------|
 | [01_insert_many](./06_bulk_operations/01_insert_many/) | Insertar múltiples registros |
 | [02_update_many](./06_bulk_operations/02_update_many/) | Actualizar múltiples registros |
 
-### 07_connection_pooling - Pool de Conexiones ⭐ Nuevo
+### 07_connection_pooling - Pool de Conexiones
 | Ejemplo | Descripción |
 |---------|-------------|
 | [01_simple_pool](./07_connection_pooling/01_simple_pool/) | Configurar connection pooling |
 
-### 08_logging - Logging ⭐ Nuevo
+### 08_logging - Logging
 | Ejemplo | Descripción |
 |---------|-------------|
 | [01_basic_logging](./08_logging/01_basic_logging/) | Configurar logging |
 
-### 09_async - Async / Await ⭐ Nuevo
+### 09_async - Async / Await ⭐ (NUEVO v0.3.0)
 | Ejemplo | Descripción |
 |---------|-------------|
 | [01_basic_async](./09_async/01_basic_async/) | Versión asíncrona de la librería |
@@ -107,20 +107,55 @@ python -m pytest examples/test/01_crud/test_create.py -v
 
 ## Requisitos
 
-- Python 3.6+
+- Python 3.9+
 - PostgreSQL
-- Librerías: `wpostgresql`, `pydantic`, `psycopg2`, `pytest`
+- Librerías: `wpostgresql`, `pydantic`, `psycopg`, `psycopg_pool`, `pytest`
 
 ### Levantar base de datos
 
 ```bash
-cd enviroment
+cd docker
 docker-compose up -d
 ```
 
 ### Instalar dependencias
 
 ```bash
-pip install -e .
-pip install pytest
+pip install -e ".[dev]"
+```
+
+---
+
+## Ejemplo Async (v0.3.0)
+
+```python
+import asyncio
+from pydantic import BaseModel
+from wpostgresql import WPostgreSQL
+
+class User(BaseModel):
+    id: int
+    name: str
+    email: str
+
+async def main():
+    db = WPostgreSQL(User, db_config)
+    
+    # CRUD async
+    await db.insert_async(User(id=1, name="John", email="john@example.com"))
+    users = await db.get_all_async()
+    await db.update_async(1, User(id=1, name="John", email="john@example.com"))
+    await db.delete_async(1)
+    
+    # Paginación async
+    users = await db.get_paginated_async(limit=10, offset=0)
+    count = await db.count_async()
+    
+    # Bulk async
+    await db.insert_many_async([User(...) for i in range(100)])
+    
+    # Transacciones async
+    await db.execute_transaction_async([("INSERT...", (...)),])
+
+asyncio.run(main())
 ```

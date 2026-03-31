@@ -21,7 +21,7 @@ class TestConnectionManager:
         assert cm.min_connections == 2
         assert cm.max_connections == 20
 
-    @patch("wpostgresql.core.connection.pool.ThreadedConnectionPool")
+    @patch("wpostgresql.core.connection.ConnectionPool")
     def test_get_connection_creates_pool(self, mock_pool_class):
         """Test get_connection creates pool if not exists."""
         mock_pool = MagicMock()
@@ -35,7 +35,7 @@ class TestConnectionManager:
         mock_pool_class.assert_called_once()
         assert conn == mock_conn
 
-    @patch("wpostgresql.core.connection.pool.ThreadedConnectionPool")
+    @patch("wpostgresql.core.connection.ConnectionPool")
     def test_get_connection_reuses_pool(self, mock_pool_class):
         """Test get_connection reuses existing pool."""
         mock_pool = MagicMock()
@@ -67,7 +67,7 @@ class TestConnectionManager:
 
         cm.close_all()
 
-        mock_pool.closeall.assert_called_once()
+        mock_pool.close.assert_called_once()
         assert cm._pool is None
 
     def test_context_manager(self):
@@ -79,7 +79,7 @@ class TestConnectionManager:
         with cm as connection:
             assert connection is cm
 
-        mock_pool.closeall.assert_called_once()
+        mock_pool.close.assert_called_once()
 
     def test_context_manager_close_all(self):
         """Test ConnectionManager __exit__ calls close_all."""
@@ -90,13 +90,13 @@ class TestConnectionManager:
         with cm:
             pass
 
-        mock_pool.closeall.assert_called_once()
+        mock_pool.close.assert_called_once()
 
 
 class TestTransaction:
     """Tests for Transaction class."""
 
-    @patch("wpostgresql.core.connection.psycopg2.connect")
+    @patch("wpostgresql.core.connection.psycopg.connect")
     def test_transaction_context_commit(self, mock_connect):
         """Test transaction commits on successful exit."""
         mock_conn = MagicMock()
@@ -108,7 +108,7 @@ class TestTransaction:
         mock_conn.commit.assert_called_once()
         mock_conn.close.assert_called_once()
 
-    @patch("wpostgresql.core.connection.psycopg2.connect")
+    @patch("wpostgresql.core.connection.psycopg.connect")
     def test_transaction_context_rollback_on_exception(self, mock_connect):
         """Test transaction rolls back on exception."""
         mock_conn = MagicMock()
@@ -121,7 +121,7 @@ class TestTransaction:
         mock_conn.rollback.assert_called_once()
         mock_conn.close.assert_called_once()
 
-    @patch("wpostgresql.core.connection.psycopg2.connect")
+    @patch("wpostgresql.core.connection.psycopg.connect")
     def test_manual_commit(self, mock_connect):
         """Test manual commit."""
         mock_conn = MagicMock()
@@ -133,7 +133,7 @@ class TestTransaction:
         mock_conn.commit.assert_called_once()
         mock_conn.close.assert_called_once()
 
-    @patch("wpostgresql.core.connection.psycopg2.connect")
+    @patch("wpostgresql.core.connection.psycopg.connect")
     def test_manual_rollback(self, mock_connect):
         """Test manual rollback."""
         mock_conn = MagicMock()
@@ -145,7 +145,7 @@ class TestTransaction:
         mock_conn.rollback.assert_called_once()
         mock_conn.close.assert_called_once()
 
-    @patch("wpostgresql.core.connection.psycopg2.connect")
+    @patch("wpostgresql.core.connection.psycopg.connect")
     def test_execute_query(self, mock_connect):
         """Test executing query within transaction."""
         mock_conn = MagicMock()
@@ -161,7 +161,7 @@ class TestTransaction:
         mock_cursor.execute.assert_called_once_with("SELECT * FROM users", ())
         assert result == [("value",)]
 
-    @patch("wpostgresql.core.connection.psycopg2.connect")
+    @patch("wpostgresql.core.connection.psycopg.connect")
     def test_execute_without_result(self, mock_connect):
         """Test executing query without result."""
         mock_conn = MagicMock()

@@ -2,12 +2,11 @@
 
 import json
 import sys
-from typing import Optional
 
 import click
 from pydantic import BaseModel
 
-from wpostgresql import WPostgreSQL, TableSync
+from wpostgresql import TableSync, WPostgreSQL
 from wpostgresql.core.connection import ConnectionManager
 
 

@@ -35,7 +35,9 @@ WPostgreSQL(model: type[BaseModel], db_config: dict)
   }
   ```
 
-### Methods
+---
+
+### Sync Methods
 
 #### insert
 
@@ -228,6 +230,141 @@ db.with_transaction(transfer)
 
 ---
 
+### Async Methods
+
+All sync methods have async equivalents with `_async` suffix.
+
+#### insert_async
+
+```python
+await db.insert_async(data: BaseModel) -> None
+```
+
+Insert a new record into the database (async).
+
+```python
+await db.insert_async(Person(id=1, name="Alice", age=25))
+```
+
+#### get_all_async
+
+```python
+await db.get_all_async() -> list[BaseModel]
+```
+
+Get all records from the table (async).
+
+```python
+all_people = await db.get_all_async()
+```
+
+#### get_by_field_async
+
+```python
+await db.get_by_field_async(**filters) -> list[BaseModel]
+```
+
+Get records filtered by specified fields (async).
+
+```python
+people = await db.get_by_field_async(age=25)
+```
+
+#### update_async
+
+```python
+await db.update_async(record_id: int, data: BaseModel) -> None
+```
+
+Update a record by ID (async).
+
+```python
+await db.update_async(1, Person(id=1, name="Alice", age=26))
+```
+
+#### delete_async
+
+```python
+await db.delete_async(record_id: int) -> None
+```
+
+Delete a record by ID (async).
+
+```python
+await db.delete_async(1)
+```
+
+#### get_paginated_async
+
+```python
+await db.get_paginated_async(
+    limit: int = 10,
+    offset: int = 0,
+    order_by: Optional[str] = None,
+    order_desc: bool = False
+) -> list[BaseModel]
+```
+
+Get records with pagination (async).
+
+#### get_page_async
+
+```python
+await db.get_page_async(page: int = 1, per_page: int = 10) -> list[BaseModel]
+```
+
+Get records by page number (async).
+
+#### count_async
+
+```python
+await db.count_async() -> int
+```
+
+Get total number of records (async).
+
+#### insert_many_async
+
+```python
+await db.insert_many_async(data_list: list[BaseModel]) -> None
+```
+
+Insert multiple records (async).
+
+#### update_many_async
+
+```python
+await db.update_many_async(updates: list[tuple[BaseModel, int]]) -> int
+```
+
+Update multiple records (async).
+
+#### delete_many_async
+
+```python
+await db.delete_many_async(record_ids: list[int]) -> int
+```
+
+Delete multiple records (async).
+
+#### execute_transaction_async
+
+```python
+await db.execute_transaction_async(operations: list[tuple[str, tuple]]) -> list[Any]
+```
+
+Execute multiple operations in a transaction (async).
+
+#### with_transaction_async
+
+```python
+await db.with_transaction_async(func: Callable[[AsyncTransaction], Any]) -> Any
+```
+
+Execute a function within a transaction (async).
+
+---
+
 ## TableSync
 
 Handles table synchronization between Pydantic models and PostgreSQL.
@@ -238,7 +375,7 @@ from wpostgresql import TableSync
 sync = TableSync(Person, db_config)
 ```
 
-### Methods
+### Sync Methods
 
 #### create_if_not_exists
 
@@ -306,10 +443,6 @@ sync.drop_index(index_name: str) -> None
 
 Drop an index.
 
-```python
-sync.drop_index("idx_name")
-```
-
 #### get_indexes
 
 ```python
@@ -318,17 +451,32 @@ sync.get_indexes() -> list[dict]
 
 Get list of indexes on the table.
 
+---
+
+### Async Methods (AsyncTableSync)
+
 ```python
-indexes = sync.get_indexes()
-for idx in indexes:
-    print(idx["name"], idx["definition"])
+from wpostgresql import AsyncTableSync
+
+async_sync = AsyncTableSync(Person, db_config)
 ```
+
+| Method | Description |
+|--------|-------------|
+| `await create_if_not_exists_async()` | Create table if not exists |
+| `await sync_with_model_async()` | Sync table with model |
+| `await table_exists_async()` | Check if table exists |
+| `await drop_table_async()` | Drop the table |
+| `await get_columns_async()` | Get list of columns |
+| `await create_index_async(columns, index_name, unique)` | Create an index |
+| `await drop_index_async(index_name)` | Drop an index |
+| `await get_indexes_async()` | Get list of indexes |
 
 ---
 
 ## ConnectionManager
 
-Manages PostgreSQL connection pooling.
+Manages PostgreSQL connection pooling (sync).
 
 ```python
 from wpostgresql import ConnectionManager
@@ -378,9 +526,25 @@ Close all connections in the pool.
 
 ---
 
+## AsyncConnectionManager
+
+Manages PostgreSQL connection pooling (async).
+
+```python
+from wpostgresql import AsyncConnectionManager
+
+pool = AsyncConnectionManager(db_config, min_connections=1, max_connections=10)
+conn = await pool.get_connection()
+# ... use connection ...
+await pool.release_connection(conn)
+await pool.close_all()
+```
+
+---
+
 ## Transaction
 
-Context manager for database transactions.
+Context manager for database transactions (sync).
 
 ```python
 from wpostgresql import get_transaction
@@ -415,6 +579,46 @@ txn.rollback() -> None
 ```
 
 Rollback the transaction.
+
+---
+
+## AsyncTransaction
+
+Context manager for database transactions (async).
+
+```python
+from wpostgresql import get_async_transaction
+
+async with get_async_transaction(db_config) as txn:
+    await txn.execute("INSERT INTO person VALUES (1, 'Alice')", ())
+    await txn.commit()
+```
+
+### Methods
+
+#### execute
+
+```python
+await txn.execute(query: str, values: tuple = None) -> Any
+```
+
+Execute a query within the async transaction.
+
+#### commit
+
+```python
+await txn.commit() -> None
+```
+
+Commit the async transaction.
+
+#### rollback
+
+```python
+await txn.rollback() -> None
+```
+
+Rollback the async transaction.
 
 ---
 
