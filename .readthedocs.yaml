@@ -17,15 +17,4 @@ sphinx:
 # Python requirements
 python:
    install:
-   - method: pip
-     path: .
-     extra_requirements:
-       - dev
-   - method: pip
-     packages:
-       - sphinx-sitemap
-       - sphinx-autobuild
-       - sphinx-copybutton
-       - sphinx.ext.intersphinx
-       - myst-parser
-       - furo
+   - requirements: docs/requirements.txt
