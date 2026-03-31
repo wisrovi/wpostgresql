@@ -22,6 +22,9 @@
     <a href="https://pepy.tech/projects/wpostgresql">
         <img src="https://static.pepy.tech/personalized-badge/wpostgresql?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads" alt="PyPI Downloads">
     </a>
+    <a href="https://github.com/wisrovi/wpostgresql/blob/main/LTS_POLICY.md">
+        <img src="https://img.shields.io/badge/LTS-1.0.0-green" alt="LTS Version">
+    </a>
 </p>
 
 **wpostgresql** is a high-performance, type-safe PostgreSQL ORM that leverages Pydantic models for schema definition and automatic table synchronization. It provides a seamless developer experience with full support for both synchronous and asynchronous operations.
@@ -306,11 +309,13 @@ pytest test/unit/test_connection.py -v
 
 | Metric | Status |
 |--------|--------|
+| Version | 1.0.0 (LTS) |
 | Pylint Score | > 9.5 |
 | Bandit Security | Passing |
 | mypy Type Check | Passing |
-| Code Coverage | > 80% |
+| Code Coverage | 70%+ |
 | Docstring Coverage | > 90% |
+| Python Support | 3.9 - 3.13 |
 
 ## Contributing
 
