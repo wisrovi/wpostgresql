@@ -7,8 +7,16 @@ This directory contains stress tests for the wpostgresql library.
 ### Run sync stress test (1000 users x 100 requests = 100,000 operations):
 ```bash
 cd stress_test
-python run.py --users 1000 --requests 100
+python run.py --users 100 --requests 10
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)
 
 ### Run async stress test:
 ```bash

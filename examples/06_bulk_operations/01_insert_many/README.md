@@ -1,14 +1,14 @@
-# Insertar Múltiples Registros (Bulk Insert)
+# Bulk Insert - Insert Multiple Records
 
-Este ejemplo muestra cómo insertar múltiples registros en una sola operación.
+This example demonstrates how to insert multiple records in a single operation.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## API propuesta
+## Proposed API
 
 ```python
 users = [
@@ -20,14 +20,22 @@ users = [
 db.insert_many(users)
 ```
 
-## Beneficios
+## Benefits
 
-- **Rendimiento**: Una sola consulta SQL para múltiples registros
-- **Velocidad**: Mucho más rápido que llamar `insert()` múltiples veces
-- **Atomicidad**: Todos se insertan o ninguno (si hay error)
+- **Performance**: Single SQL query for multiple records
+- **Speed**: Much faster than calling `insert()` multiple times
+- **Atomicity**: All are inserted or none (if error)
 
-## Resultado esperado
+## Expected Output
 
 ```
-Usuarios insertados: [User(id=1, name='Alice', age=25), User(id=2, name='Bob', age=30), ...]
+Inserted users: [User(id=1, name='Alice', age=25), User(id=2, name='Bob', age=30), ...]
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

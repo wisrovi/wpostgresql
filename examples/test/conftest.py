@@ -1,4 +1,4 @@
-import psycopg2
+import psycopg
 
 DB_CONFIG = {
     "dbname": "wpostgresql",
@@ -14,7 +14,7 @@ def setup_module(module):
     config = DB_CONFIG.copy()
     config["dbname"] = "postgres"
     try:
-        conn = psycopg2.connect(**config)
+        conn = psycopg.connect(**config)
         conn.autocommit = True
         cursor = conn.cursor()
         cursor.execute("SELECT 1 FROM pg_database WHERE datname = 'wpostgresql'")
@@ -29,7 +29,7 @@ def setup_module(module):
 def cleanup_table(table_name: str):
     """Limpia una tabla antes de cada test."""
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg.connect(**DB_CONFIG)
         conn.autocommit = True
         cursor = conn.cursor()
         cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")

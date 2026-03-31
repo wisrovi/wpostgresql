@@ -86,3 +86,11 @@ Configuración:
 - User: postgres
 - Password: postgres
 - DB: wpostgresql
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

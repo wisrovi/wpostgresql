@@ -1,0 +1,99 @@
+default_language_version:
+  python: python3
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-ast
+        verbose: true
+      - id: check-yaml
+        verbose: true
+      - id: check-json
+        verbose: true
+      - id: end-of-file-fixer
+        verbose: true
+      - id: trailing-whitespace
+        verbose: true
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        verbose: true
+        args: [--ignore-missing-imports, --disallow-untyped-defs, --disallow-incomplete-defs]
+        # missing import : Does not fail if optional libraries are missing
+        # untyped def, (incomplete def) : recquire functions to have (complete) annotation
+        additional_dependencies: [pydantic, fastapi, types-requests, types-setuptools]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell                # Checks spelling (ignores your alias wisrovi)
+        verbose: true
+        args: ["-L", "wisrovi"]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        verbose: true
+        args: ["-ll", "-v"]         # Security analysis (medium/high severity)
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:                           # linter and formatter for the developpers
+      - id: ruff                     # Ultra-fast linter with auto-fix capabilities
+        verbose: true
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format              # Code formatter (Black style)
+        verbose: true
+
+
+  - repo: local
+    hooks:
+      - id: hadolint
+        name: Lint Dockerfiles
+        language: system
+        entry: hadolint
+        pass_filenames: true
+        types_or: [dockerfile]
+        verbose: true
+
+
+  - repo: local
+    hooks:
+      - id: checkov-dockerfile
+        name: checkov (dockerfile security)
+        language: system
+        entry: bash -c 'checkov --compact --framework dockerfile --quiet $(printf -- "--file %s " "$@")' --
+        pass_filenames: true
+        types_or: [dockerfile]
+        verbose: true
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets          # permit to detect the presence of secrets (credentials for instance) in code or commit message
+        verbose: true
+        args: ['--baseline', '.secrets.baseline']
+
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate             # permit to detect missing doctring
+        verbose: true
+        args: ["-vv", "--fail-under=80"]
+
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.11.0
+    hooks:
+      - id: shellcheck               # Static analysis for Bash scripts
+
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.10.0
+    hooks:
+      - id: pip-audit               # tool for scanning Python environments for packages with known vulnerabilities
+        verbose: true
+        args: ["--requirement", "requirements.txt", "--ignore-vuln", "PYSEC-2022-42969"] #ignore this particular vulnerability because it is linked to pytest
+                                                                                         #which was explicitly requested

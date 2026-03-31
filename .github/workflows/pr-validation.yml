@@ -1,0 +1,307 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+# Cancel previous runs on the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }} # Creates a unique identifier for this workflow and this specific PR.
+  cancel-in-progress: true
+
+jobs:
+
+  # ──────────────────────────────────────────────
+  # 1. Syntax & basic file checks
+  # ──────────────────────────────────────────────
+  syntax-checks:
+    name: Syntax & file checks (yaml / json / ast / whitespace)
+    runs-on: ubuntu-latest # Indicates that the test runs on a Linux (Ubuntu) virtual machine provided by GitHub.
+    steps:
+      - uses: actions/checkout@v4 # Standard action that clones your source code onto the virtual machine.
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run basic hooks
+        run: |
+          pre-commit run check-ast          --all-files
+          pre-commit run check-yaml         --all-files
+          pre-commit run check-json         --all-files
+          pre-commit run end-of-file-fixer  --all-files
+          pre-commit run trailing-whitespace --all-files
+
+  # ──────────────────────────────────────────────
+  # 2. Type checking — mypy
+  # ──────────────────────────────────────────────
+  mypy:
+    name: Type checking (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install mypy pydantic fastapi types-requests types-setuptools
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run mypy
+        run: |
+          mypy . \
+            --ignore-missing-imports \
+            --disallow-untyped-defs \
+            --disallow-incomplete-defs
+
+  # ──────────────────────────────────────────────
+  # 3. Spell checking — codespell
+  # ──────────────────────────────────────────────
+  codespell:
+    name: Spell checking (codespell)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install codespell
+        run: pip install codespell
+
+      - name: Run codespell
+        run: codespell -L wisrovi
+
+  # ──────────────────────────────────────────────
+  # 4. Security analysis — bandit
+  # ──────────────────────────────────────────────
+  bandit:
+    name: Security analysis (bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit
+        run: bandit -r . -ll -v
+
+  # ──────────────────────────────────────────────
+  # 5. Linting & formatting — ruff
+  # ──────────────────────────────────────────────
+  ruff:
+    name: Lint & format (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Run ruff linter
+        run: ruff check .
+
+      - name: Run ruff formatter (check only — no auto-fix in CI)
+        run: ruff format --check .
+
+  # ──────────────────────────────────────────────
+  # 6. Dockerfile linting — hadolint
+  #    Only scans Dockerfiles changed in the PR
+  # ──────────────────────────────────────────────
+  hadolint:
+    name: Dockerfile lint (hadolint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0            # needed to compare with base branch
+
+      - name: Get changed Dockerfiles
+        id: changed
+        # The following instruction is used to detect only the dockerfile that hqs been modified
+        run: |
+          FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep -iE '(^|/)Dockerfile(\.[^/]+)?$' || true)
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+          echo "Changed Dockerfiles: $FILES"
+
+      - name: Install hadolint
+        if: steps.changed.outputs.files != ''
+        run: |
+          curl -sSL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 \
+            -o /usr/local/bin/hadolint
+          chmod +x /usr/local/bin/hadolint
+
+      # We only execute hadolint if there id files that has been modified
+      - name: Run hadolint on changed files
+        if: steps.changed.outputs.files != ''
+        run: |
+          echo "${{ steps.changed.outputs.files }}" | xargs hadolint
+
+      - name: No Dockerfiles changed
+        if: steps.changed.outputs.files == ''
+        run: echo "No Dockerfile changed — skipping hadolint."
+
+  # ──────────────────────────────────────────────
+  # 7. Dockerfile security — checkov
+  #    Only scans Dockerfiles changed in the PR
+  # ──────────────────────────────────────────────
+  checkov:
+    name: Dockerfile security (checkov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install checkov
+        run: pip install checkov
+
+      - name: Get changed Dockerfiles
+        id: changed
+        run: |
+          FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep -iE '(^|/)Dockerfile(\.[^/]+)?$' || true)
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+          echo "Changed Dockerfiles: $FILES"
+
+      - name: Run checkov on changed files
+        if: steps.changed.outputs.files != ''
+        run: |
+          for f in ${{ steps.changed.outputs.files }}; do
+            checkov --compact --framework dockerfile --quiet --file "$f"
+          done
+
+      - name: No Dockerfiles changed
+        if: steps.changed.outputs.files == ''
+        run: echo "No Dockerfile changed — skipping checkov."
+
+  # ──────────────────────────────────────────────
+  # 8. Secrets detection — detect-secrets
+  # ──────────────────────────────────────────────
+  detect-secrets:
+    name: Secrets detection (detect-secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install detect-secrets
+        run: pip install detect-secrets
+
+      - name: Run detect-secrets on changed files
+        # We write the result of detect-secret in a json file, we use a python script to analyse it and see if there is a secret
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          if [ -z "$CHANGED" ]; then
+            echo "No changed files."
+            exit 0
+          fi
+          detect-secrets scan $CHANGED > /tmp/secrets_report.json
+          # Fail if any secrets found
+          python3 -c "
+          import json, sys
+          report = json.load(open('/tmp/secrets_report.json'))
+          findings = {k: v for k, v in report.get('results', {}).items() if v}
+          if findings:
+              print('Secrets detected:', json.dumps(findings, indent=2))
+              sys.exit(1)
+          print('No secrets detected.')
+          "
+
+  # ──────────────────────────────────────────────
+  # 9. Docstring coverage — interrogate
+  # ──────────────────────────────────────────────
+  interrogate:
+    name: Docstring coverage (interrogate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install interrogate
+        run: pip install interrogate
+
+      - name: Run interrogate
+        run: interrogate -vv --fail-under=90 .
+
+  # ──────────────────────────────────────────────
+  # 10. Shell scripts static analysis — shellcheck
+  # ──────────────────────────────────────────────
+  shellcheck:
+    name: Shell scripts (shellcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed shell scripts
+        id: changed
+        run: |
+          FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep -E '\.(sh|bash)$' || true)
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+          echo "Changed shell scripts: $FILES"
+
+      - name: Run shellcheck
+        if: steps.changed.outputs.files != ''
+        run: |
+          sudo apt-get install -y shellcheck
+          echo "${{ steps.changed.outputs.files }}" | xargs shellcheck
+
+      - name: No shell scripts changed
+        if: steps.changed.outputs.files == ''
+        run: echo "No shell script changed — skipping shellcheck."
+
+  # ──────────────────────────────────────────────
+  # 11. Dependency vulnerabilities — pip-audit
+  # ──────────────────────────────────────────────
+  pip-audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run pip-audit
+        run: |
+          pip-audit \
+            --requirement requirements.txt \
+            --ignore-vuln PYSEC-2022-42969

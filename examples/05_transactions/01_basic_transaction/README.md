@@ -1,14 +1,14 @@
-# Transacciones Básicas
+# Basic Transactions
 
-Este ejemplo muestra cómo usar transacciones para operaciones atómicas.
+This example demonstrates how to use transactions for atomic operations.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## API propuesta
+## Proposed API
 
 ```python
 try:
@@ -16,26 +16,34 @@ try:
         t.execute("UPDATE user SET balance = balance - 100 WHERE id = 1")
         t.execute("UPDATE user SET balance = balance + 100 WHERE id = 2")
 except Exception as e:
-    print("Transacción fallida:", e)
+    print("Transaction failed:", e)
 ```
 
-## Beneficios
+## Benefits
 
-- **Atomicidad**: Si una operación falla, todas se revierten
-- **Consistencia**: Mantiene la integridad de los datos
-- **Ejemplo**: Transferencia bancaria (debitar + acreditar)
+- **Atomicity**: If one operation fails, all are rolled back
+- **Consistency**: Maintains data integrity
+- **Example**: Bank transfer (debit + credit)
 
-## Resultado esperado
+## Expected Output
 
-Si todo bien:
+If all good:
 ```
-Saldo final Alice: 900
-Saldo final Bob: 600
+Final balance Alice: 900
+Final balance Bob: 600
 ```
 
-Si falla (ej. ID no existe):
+If fails (e.g., ID doesn't exist):
 ```
-Transacción fallida: ...
-Saldo final Alice: 1000
-Saldo final Bob: 500
+Transaction failed: ...
+Final balance Alice: 1000
+Final balance Bob: 500
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

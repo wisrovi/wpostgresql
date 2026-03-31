@@ -1,22 +1,22 @@
 # Logging
 
-Este ejemplo muestra cómo configurar y usar logging.
+This example demonstrates how to configure and use logging.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## API propuesta
+## Proposed API
 
 ```python
 from wpostgresql import configure_logging
 
-# Configuración básica
+# Basic configuration
 configure_logging(level="INFO")
 
-# Configuración avanzada
+# Advanced configuration
 configure_logging(
     level="DEBUG",
     format="json",
@@ -25,19 +25,27 @@ configure_logging(
     retention="7 days"
 )
 
-# Niveles disponibles: DEBUG, INFO, WARNING, ERROR, CRITICAL
+# Available levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
 
-## Beneficios
+## Benefits
 
-- **Debug**: Rastrear problemas en producción
-- **Auditoría**: Registrar quién hizo qué operación
-- **Monitoreo**: Observar patrones de uso
+- **Debug**: Track issues in production
+- **Audit**: Log who performed which operation
+- **Monitoring**: Observe usage patterns
 
-## Ejemplo de salida
+## Example Output
 
 ```
 2025-03-30 10:00:00 | INFO | wpostgresql | INSERT INTO user VALUES (...) | 0.023s
 2025-03-30 10:00:01 | DEBUG | wpostgresql | SELECT * FROM user | 0.015s
 2025-03-30 10:00:02 | WARNING | wpostgresql | Connection pool near limit
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

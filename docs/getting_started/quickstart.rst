@@ -1,78 +1,213 @@
-============
-Quickstart
-============
+.. _quickstart:
 
-This guide will help you get started with wpostgresql in minutes.
+Quickstart Guide
+================
 
-Basic Usage
------------
+.. hero::
+   :title: Get Started in Minutes
+   :subtitle: Learn the basics of wpostgresql with this hands-on guide
+   :image: _static/quickstart.png
+   :alt: Quickstart illustration
+   :btn1_text: Installation Guide
+   :btn1_url: #installation
+   :btn2_text: View Full Examples
+   :btn2_url: #examples
+   :btn2_alt: Examples
+   :btn2_class: btn-secondary
+   :btn1_class: btn-primary
+   :color: primary
 
-Create a Pydantic model and initialize the database connection:
+.. tab-set::
 
-.. code-block:: python
+   .. tab-item:: Synchronous
+      :sync: true
 
-    from pydantic import BaseModel
-    from wpostgresql import WPostgreSQL
+      This guide will help you get started with wpostgresql synchronous operations in minutes.
 
-    class User(BaseModel):
-        id: int
-        name: str
-        email: str
+      Basic Usage
+      -----------
+      
+      Create a Pydantic model and initialize the database connection:
 
-    db_config = {
-        "dbname": "mydatabase",
-        "user": "myuser",
-        "password": "mypassword",
-        "host": "localhost",
-        "port": 5432,
-    }
+      .. code-block:: python
+         :linenos:
+         :emphasize-lines: 15,30
 
-    db = WPostgreSQL(User, db_config)
+         from pydantic import BaseModel
+         from wpostgresql import WPostgreSQL
 
-CRUD Operations
-----------------
+         class User(BaseModel):
+             id: int
+             name: str
+             email: str
 
-Create:
+         db_config = {
+             "dbname": "mydatabase",
+             "user": "myuser",
+             "password": "mypassword",
+             "host": "localhost",
+             "port": 5432,
+         }
 
-.. code-block:: python
+         db = WPostgreSQL(User, db_config)
 
-    db.insert(User(id=1, name="John Doe", email="john@example.com"))
+      CRUD Operations
+      ----------------
 
-Read:
+      Create:
+      
+      .. code-block:: python
+         :linenos:
 
-.. code-block:: python
+         db.insert(User(id=1, name="John Doe", email="john@example.com"))
 
-    all_users = db.get_all()
-    john = db.get_by_field(name="John Doe")
+      Read:
+      
+      .. code-block:: python
+         :linenos:
 
-Update:
+         all_users = db.get_all()
+         john = db.get_by_field(name="John Doe")
 
-.. code-block:: python
+      Update:
+      
+      .. code-block:: python
+         :linenos:
 
-    db.update(1, User(id=1, name="John Smith", email="john.smith@example.com"))
+         db.update(1, User(id=1, name="John Smith", email="john.smith@example.com"))
 
-Delete:
+      Delete:
+      
+      .. code-block:: python
+         :linenos:
 
-.. code-block:: python
+         db.delete(1)
 
-    db.delete(1)
+   .. tab-item:: Asynchronous
+      :sync: true
 
-Async Operations
-----------------
+      Learn how to use wpostgresql with async/await for high-performance applications.
 
-.. code-block:: python
+      Async Operations
+      ----------------
 
-    import asyncio
+      .. code-block:: python
+         :linenos:
+         :emphasize-lines: 6,12,15
 
-    async def main():
-        await db.insert_async(User(id=2, name="Jane", email="jane@example.com"))
-        users = await db.get_all_async()
+         import asyncio
+         from pydantic import BaseModel
+         from wpostgresql import WPostgreSQL
 
-    asyncio.run(main())
+         class User(BaseModel):
+             id: int
+             name: str
+             email: str
+
+         async def main():
+             db_config = {
+                 "dbname": "mydatabase",
+                 "user": "myuser",
+                 "password": "mypassword",
+                 "host": "localhost",
+                 "port": 5432,
+             }
+
+             db = WPostgreSQL(User, db_config)
+             
+             # Insert a new record asynchronously
+             await db.insert_async(User(id=2, name="Jane", email="jane@example.com"))
+             
+             # Get all records asynchronously
+             users = await db.get_all_async()
+             print(users)
+
+         asyncio.run(main())
+
+      Async CRUD Operations
+      ---------------------
+
+      Create:
+      
+      .. code-block:: python
+         :linenos:
+
+         await db.insert_async(User(id=1, name="John Doe", email="john@example.com"))
+
+      Read:
+      
+      .. code-block:: python
+         :linenos:
+
+         all_users = await db.get_all_async()
+         john = await db.get_by_field_async(name="John Doe")
+
+      Update:
+      
+      .. code-block:: python
+         :linenos:
+
+         await db.update_async(1, User(id=1, name="John Smith", email="john.smith@example.com"))
+
+      Delete:
+      
+      .. code-block:: python
+         :linenos:
+
+         await db.delete_async(1)
+
+.. section-separator::
+
+.. _next-steps:
 
 Next Steps
 ----------
 
-* Read the :doc:`Configuration <configuration>` guide for database setup options
-* Explore :doc:`../tutorials/crud_operations` for more detailed examples
-* Check the :doc:`../api_reference/index` for complete API documentation
+.. grid:: 1 2 2 2
+   :gutter: 3
+
+   .. grid-item-card::
+      :title: Configuration Guide
+      :link: configuration.html
+      :link-type: ref
+      :class-card: wpostgresql-card
+
+      +++
+
+      Learn how to configure database connections, connection pooling, and SSL settings for production use.
+
+   .. grid-item-card::
+      :title: CRUD Tutorial
+      :link: ../tutorials/crud_operations.html
+      :link-type: ref
+      :class-card: wpostgresql-card
+
+      +++
+
+      Dive deeper into CRUD operations with advanced filtering, validation, and bulk operations.
+
+   .. grid-item-card::
+      :title: API Reference
+      :link: ../api_reference/index.html
+      :link-type: ref
+      :class-card: wpostgresql-card
+
+      +++
+
+      Explore the complete API documentation with detailed method descriptions and parameter information.
+
+   .. grid-item-card::
+      :title: Examples Gallery
+      :link: ../examples/index.html
+      :link-type: ref
+      :class-card: wpostgresql-card
+
+      +++
+
+      Browse through practical examples demonstrating all features of wpostgresql.
+
+.. section-separator::
+
+.. include:: examples/01_crud/README.md
+   :start-line: 90
+   :end-line: 114

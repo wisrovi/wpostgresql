@@ -1,32 +1,40 @@
-# Paginación por Número de Página
+# Pagination by Page Number
 
-Este ejemplo muestra cómo paginar resultados usando número de página.
+This example demonstrates how to paginate results using page number.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## API propuesta
+## Proposed API
 
 ```python
 page_size = 5
 
-# Página 1 (registros 1-5)
+# Page 1 (records 1-5)
 db.get_all(page=1, page_size=page_size)
 
-# Página 2 (registros 6-10)
+# Page 2 (records 6-10)
 db.get_all(page=2, page_size=page_size)
 
-# Página 3 (registros 11-15)
+# Page 3 (records 11-15)
 db.get_all(page=3, page_size=page_size)
 ```
 
-## Retorna
+## Returns
 
-Una tupla con: (registros, total_páginas, total_registros)
+A tuple with: (records, total_pages, total_records)
 
 ```
-Página 1: ([User(...), ...], 4, 20)
+Page 1: ([User(...), ...], 4, 20)
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

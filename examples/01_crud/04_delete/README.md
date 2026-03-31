@@ -1,20 +1,28 @@
-# Delete - Eliminar Registros
+# Delete - Delete Records
 
-Este ejemplo muestra cómo eliminar un registro de la base de datos.
+This example demonstrates how to delete a record from the database.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Explicación
+## Explanation
 
-El método `delete(record_id)` elimina el registro donde `id = record_id`.
+The `delete(record_id)` method deletes the record where `id = record_id`.
 
-## Resultado esperado
+## Expected Output
 
 ```
-Antes de eliminar: [User(id=1, ...), User(id=2, ...), User(id=3, ...)]
-Después de eliminar: [User(id=1, ...), User(id=2, ...)]
+Before delete: [User(id=1, ...), User(id=2, ...), User(id=3, ...)]
+After delete: [User(id=1, ...), User(id=2, ...)]
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

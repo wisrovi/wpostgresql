@@ -1,19 +1,27 @@
-# Primary Key - Clave Primaria
+# Primary Key
 
-Este ejemplo muestra cómo usar Primary Key para evitar IDs duplicados.
+This example demonstrates how to use Primary Key to prevent duplicate IDs.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Explicación
+## Explanation
 
-Se usa `Field(..., description="Primary Key")` para definir un campo como clave primaria.
+Use `Field(..., description="primary")` to define a field as primary key.
 
-## Resultado esperado
+## Expected Output
 
 ```
-Error: No se puede insertar ID duplicado: ...
+Error: Cannot insert duplicate ID: ...
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

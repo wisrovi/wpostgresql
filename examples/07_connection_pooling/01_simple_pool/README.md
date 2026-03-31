@@ -1,37 +1,37 @@
 # Connection Pooling
 
-wpostgresql ahora usa connection pooling **automático por defecto**.
+wpostgresql now uses **automatic connection pooling by default**.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-##Pooling Automático (Default)
+## Automatic Pooling (Default)
 
-¡No necesitas configurar nada! El pooling es automático:
+No configuration needed! Pooling is automatic:
 
 ```python
 from wpostgresql import WPostgreSQL
 
-# Automatic pooling - sin configuración extra
+# Automatic pooling - no extra config needed
 db = WPostgreSQL(User, db_config)
 
-# Todas las operaciones usan el pool automáticamente
+# All operations use the pool automatically
 db.insert(user)
 db.get_all()
 db.get_by_field(name="John")
 ```
 
-### Configuración Automática
-- **Mínimo**: 2 conexiones
-- **Máximo**: 20 conexiones
-- Se reutilizan automáticamente
+### Automatic Configuration
+- **Minimum**: 2 connections
+- **Maximum**: 20 connections
+- Automatically reused
 
-## Pool Personalizado (Avanzado)
+## Custom Pool (Advanced)
 
-Si necesitas configuración específica:
+If you need custom configuration:
 
 ```python
 from wpostgresql import ConnectionManager
@@ -43,14 +43,14 @@ pool = ConnectionManager(
 )
 
 conn = pool.get_connection()
-# ... usa la conexión ...
+# ... use the connection ...
 pool.release_connection(conn)
 pool.close_all()
 ```
 
-## Limpieza
+## Cleanup
 
-Cerrar pools globales al terminar la aplicación:
+Close global pools when application terminates:
 
 ```python
 from wpostgresql.core.connection import close_global_pools
@@ -58,17 +58,23 @@ from wpostgresql.core.connection import close_global_pools
 close_global_pools()
 ```
 
-## Beneficios
+## Performance
 
-| Antes | Ahora |
-|-------|-------|
-| Nueva conexión por operación | Conexiones reutilizadas |
-| ~800ms por operación | ~10-50ms por operación |
-| 1000 ops = 1000 conexiones | Pool de 20 conexiones |
+| Before | Now |
+|--------|-----|
+| New connection per operation | Reused connections |
+| ~800ms per operation | ~10-50ms per operation |
+| 1000 ops = 1000 connections | Pool of 20 connections |
 
-## Rendimiento
+With automatic pooling:
+- **5x faster** in normal operations
+- **100+ ops/second** possible
+- Supports thousands of simultaneous users
 
-Con pooling automático:
-- **5x más rápido** en operaciones normales
-- **100+ ops/segundo** posible
-- Soporta miles de usuarios simultáneos
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

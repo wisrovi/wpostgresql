@@ -1,38 +1,46 @@
-# Read - Consultar Registros
+# Read - Query Records
 
-Este ejemplo muestra cómo consultar registros de la base de datos.
+This example demonstrates how to query records from the database.
 
-## Métodos disponibles
+## Available Methods
 
 ### get_all()
-Retorna todos los registros de la tabla.
+Returns all records from the table.
 
 ### get_by_field(**filters)
-Retorna registros que coinciden con los filtros especificados.
+Returns records matching the specified filters.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Ejemplos de filtros
+## Filter Examples
 
 ```python
-# Un solo filtro
-db.get_by_field(name="Juan Pérez")
+# Single filter
+db.get_by_field(name="John Doe")
 
-# Múltiples filtros
+# Multiple filters
 db.get_by_field(age=25, is_active=True)
 
-# Sin filtros (equivalente a get_all)
+# No filters (equivalent to get_all)
 db.get_by_field()
 ```
 
-## Resultado esperado
+## Expected Output
 
 ```
-Todos los usuarios: [User(id=1, name='Juan Pérez', ...), ...]
-Usuario por nombre: [User(id=1, name='Juan Pérez', ...)]
-Usuarios activos con 25 años: [User(id=2, name='Ana López', ...)]
+All users: [User(id=1, name='John Doe', ...), ...]
+User by name: [User(id=1, name='John Doe', ...)]
+Active users aged 25: [User(id=2, name='Jane Doe', ...)]
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

@@ -1,19 +1,27 @@
-# UNIQUE - Valores Únicos
+# UNIQUE Constraint
 
-Este ejemplo muestra cómo usar restricciones UNIQUE para campos que no pueden repetirse.
+This example demonstrates how to use UNIQUE constraints for fields that cannot have duplicate values.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Explicación
+## Explanation
 
-Se usa `Field(None, description="UNIQUE")` para definir un campo con valores únicos.
+Use `Field(None, description="unique")` to define a field with unique values.
 
-## Resultado esperado
+## Expected Output
 
 ```
-Error: Email duplicado: ...
+Error: Duplicate email: ...
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

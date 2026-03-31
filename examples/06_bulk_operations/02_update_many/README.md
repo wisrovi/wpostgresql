@@ -1,34 +1,42 @@
-# Actualizar Múltiples Registros (Bulk Update)
+# Bulk Update - Update Multiple Records
 
-Este ejemplo muestra cómo actualizar múltiples registros en una sola operación.
+This example demonstrates how to update multiple records in a single operation.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## API propuesta
+## Proposed API
 
 ```python
-# Actualizar varios registros con mismos valores
+# Update multiple records with same values
 updates = [
     {"id": 1, "status": "inactive"},
     {"id": 2, "status": "inactive"},
 ]
 db.update_many(updates)
 
-# O con condición
+# Or with condition
 db.update_many(updates, where={"status": "active"})
 ```
 
-## Beneficios
+## Benefits
 
-- **Rendimiento**: Una sola consulta SQL
-- **Conveniencia**: Actualizar muchos registros fácilmente
+- **Performance**: Single SQL query
+- **Convenience**: Update many records easily
 
-## Resultado esperado
+## Expected Output
 
 ```
-Usuarios actualizados: [User(id=1, name='Alice', status='inactive'), User(id=2, name='Bob', status='inactive'), User(id=3, name='Charlie', status='active')]
+Updated users: [User(id=1, name='Alice', status='inactive'), User(id=2, name='Bob', status='inactive'), User(id=3, name='Charlie', status='active')]
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)

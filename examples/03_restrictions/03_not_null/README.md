@@ -1,19 +1,27 @@
-# NOT NULL - Campo Obligatorio
+# NOT NULL Constraint
 
-Este ejemplo muestra cómo usar restricciones NOT NULL para campos obligatorios.
+This example demonstrates how to use NOT NULL constraints for required fields.
 
-## Uso
+## Usage
 
 ```bash
 python example.py
 ```
 
-## Explicación
+## Explanation
 
-Se usa `Field(..., description="NOT NULL")` para definir un campo obligatorio.
+Use `Field(..., description="not null")` to define a required field.
 
-## Resultado esperado
+## Expected Output
 
 ```
-Error: Name no puede ser vacío: ...
+Error: Name cannot be empty: ...
 ```
+
+## Author
+
+**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
+
+Technology Evangelist & Software Architect
+
+LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)
