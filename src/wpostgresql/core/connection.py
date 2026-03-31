@@ -84,6 +84,7 @@ def _get_global_async_pool(db_config: dict) -> AsyncConnectionPool:
                 conninfo,
                 min_size=_default_pool_config["min_size"],
                 max_size=_default_pool_config["max_size"],
+                open=True,
             )
             logger.info("Created global async pool")
         return _global_async_pool

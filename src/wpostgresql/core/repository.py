@@ -62,7 +62,7 @@ class WPostgreSQL:
         """
         self.model = model
         self.db_config = db_config
-        self.table_name = model.__name__.lower()
+        self.table_name = getattr(model, "__tablename__", model.__name__.lower())
         self._sync = TableSync(model, db_config)
 
         self._sync.create_if_not_exists()

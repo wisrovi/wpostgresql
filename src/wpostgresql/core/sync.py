@@ -18,7 +18,7 @@ class TableSync:
         """
         self.model = model
         self.db_config = db_config
-        self.table_name = model.__name__.lower()
+        self.table_name = getattr(model, "__tablename__", model.__name__.lower())
 
     def create_if_not_exists(self):
         """Create the table if it doesn't exist."""
@@ -142,7 +142,7 @@ class AsyncTableSync:
         """
         self.model = model
         self.db_config = db_config
-        self.table_name = model.__name__.lower()
+        self.table_name = getattr(model, "__tablename__", model.__name__.lower())
 
     async def create_if_not_exists_async(self):
         """Create the table if it doesn't exist (async)."""
@@ -234,7 +234,8 @@ class AsyncTableSync:
         unique_str = "UNIQUE " if unique else ""
         query = f"CREATE {unique_str}INDEX IF NOT EXISTS {index_name} ON {self.table_name} ({columns_str})"
 
-        async with get_async_connection(self.db_config) as conn:
+        conn = await get_async_connection(self.db_config)
+        async with conn:
             async with conn.cursor() as cursor:
                 await cursor.execute(query)
             await conn.commit()
@@ -246,7 +247,8 @@ class AsyncTableSync:
             index_name: Name of the index to drop.
         """
         query = f"DROP INDEX IF EXISTS {index_name}"
-        async with get_async_connection(self.db_config) as conn:
+        conn = await get_async_connection(self.db_config)
+        async with conn:
             async with conn.cursor() as cursor:
                 await cursor.execute(query)
             await conn.commit()
