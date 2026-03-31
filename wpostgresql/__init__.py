@@ -1,1 +1,0 @@
-from .wpostgresql import WPostgreSQL
