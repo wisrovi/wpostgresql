@@ -187,9 +187,8 @@ class TestTransaction:
         mock_conn = MagicMock()
         mock_connect.return_value = mock_conn
 
-        with pytest.raises(ValueError, match="Test error"):
-            with Transaction({"dbname": "test"}):
-                raise ValueError("Test error")
+        with pytest.raises(ValueError, match="Test error"), Transaction({"dbname": "test"}):
+            raise ValueError("Test error")
 
         mock_conn.rollback.assert_called_once()
         mock_conn.close.assert_called_once()

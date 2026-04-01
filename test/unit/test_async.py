@@ -5,7 +5,6 @@ asynchronous methods in WPostgreSQL and AsyncTableSync classes.
 """
 
 import inspect
-from typing import List
 
 from loguru import logger
 from pydantic import BaseModel
@@ -35,8 +34,8 @@ class TestAsyncMethodsExist:
         asserts their presence in the WPostgreSQL class.
         """
         logger.info("Verifying WPostgreSQL async methods...")
-        db_methods: List[str] = dir(WPostgreSQL)
-        async_methods: List[str] = [
+        db_methods: list[str] = dir(WPostgreSQL)
+        async_methods: list[str] = [
             "insert_async",
             "get_all_async",
             "get_by_field_async",
@@ -82,7 +81,7 @@ class TestAsyncMethodsExist:
 
         # Check insert_async signature
         sig = inspect.signature(WPostgreSQL.insert_async)
-        params: List[str] = list(sig.parameters.keys())
+        params: list[str] = list(sig.parameters.keys())
         assert "self" in params
         assert "data" in params
 
@@ -112,7 +111,7 @@ class TestAsyncTableSyncMethods:
         """
         logger.info("Checking AsyncTableSync.create_if_not_exists_async signature...")
         sig = inspect.signature(AsyncTableSync.create_if_not_exists_async)
-        params: List[str] = list(sig.parameters.keys())
+        params: list[str] = list(sig.parameters.keys())
         assert "self" in params
         logger.success("Signature for create_if_not_exists_async is correct.")
 
@@ -123,7 +122,7 @@ class TestAsyncTableSyncMethods:
         """
         logger.info("Checking AsyncTableSync.sync_with_model_async signature...")
         sig = inspect.signature(AsyncTableSync.sync_with_model_async)
-        params: List[str] = list(sig.parameters.keys())
+        params: list[str] = list(sig.parameters.keys())
         assert "self" in params
         logger.success("Signature for sync_with_model_async is correct.")
 
@@ -134,7 +133,7 @@ class TestAsyncTableSyncMethods:
         """
         logger.info("Checking AsyncTableSync.table_exists_async signature...")
         sig = inspect.signature(AsyncTableSync.table_exists_async)
-        params: List[str] = list(sig.parameters.keys())
+        params: list[str] = list(sig.parameters.keys())
         assert "self" in params
         assert "return" in str(sig) or "bool" in str(sig)
         logger.success("Signature for table_exists_async is correct.")

@@ -209,10 +209,11 @@ async def run_async_operation(db, operation_type: str, user_id: int, req_id: int
 
 def run_sync_stress_test(config: StressTestConfig) -> StressTestResult:
     """Run synchronous stress test with TRUE CONCURRENCY."""
-    from wpostgresql import WPostgreSQL, TableSync
     from concurrent.futures import ThreadPoolExecutor
 
-    print(f"\n[SYNC] Setting up test database...")
+    from wpostgresql import TableSync, WPostgreSQL
+
+    print("\n[SYNC] Setting up test database...")
 
     sync = TableSync(UserModel, config.db_config)
     sync.drop_table()
@@ -257,9 +258,9 @@ def run_sync_stress_test(config: StressTestConfig) -> StressTestResult:
 
 async def run_async_stress_test(config: StressTestConfig) -> StressTestResult:
     """Run asynchronous stress test with TRUE CONCURRENCY."""
-    from wpostgresql import WPostgreSQL, AsyncTableSync
+    from wpostgresql import AsyncTableSync, WPostgreSQL
 
-    print(f"\n[ASYNC] Setting up test database...")
+    print("\n[ASYNC] Setting up test database...")
 
     sync = AsyncTableSync(UserModel, config.db_config)
     await sync.drop_table_async()
@@ -323,8 +324,8 @@ def main():
     if args.port:
         config.db_config["port"] = args.port
 
-    print(f"wpostgresql CONCURRENT Stress Test")
-    print(f"Configuration:")
+    print("wpostgresql CONCURRENT Stress Test")
+    print("Configuration:")
     print(f"  Concurrent users: {config.num_users}")
     print(f"  Requests per user: {config.requests_per_user}")
     print(f"  TOTAL operations: {config.num_users * config.requests_per_user:,}")

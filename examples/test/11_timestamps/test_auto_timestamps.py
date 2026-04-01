@@ -1,5 +1,6 @@
-import pytest
 from datetime import datetime
+
+import pytest
 from pydantic import BaseModel, Field
 
 from examples.test.conftest import DB_CONFIG, cleanup_table
@@ -23,7 +24,7 @@ def setup():
 
 
 def test_auto_timestamp_on_insert():
-    db = WPostgreSQL(TimestampedPerson, DB_CONFIG)
+    WPostgreSQL(TimestampedPerson, DB_CONFIG)
 
     with get_connection(DB_CONFIG) as conn:
         with conn.cursor() as cursor:
@@ -78,12 +79,11 @@ def test_update_timestamp():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT name, updated_at FROM person_timestamp WHERE name = %s", ("Bob Smith",)
-            )
-            result = cursor.fetchone()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT name, updated_at FROM person_timestamp WHERE name = %s", ("Bob Smith",)
+        )
+        result = cursor.fetchone()
 
     assert result[0] == "Bob Smith"
     assert result[1] is not None

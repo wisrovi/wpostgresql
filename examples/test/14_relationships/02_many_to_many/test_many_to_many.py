@@ -1,5 +1,4 @@
 import pytest
-from pydantic import BaseModel
 
 from examples.test.conftest import DB_CONFIG
 from wpostgresql.core.connection import get_connection
@@ -64,13 +63,12 @@ def test_enroll_student_in_course():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "SELECT COUNT(*) FROM enrollment WHERE student_id = %s AND course_id = %s",
-                (student_id, course_id),
-            )
-            count = cursor.fetchone()[0]
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT COUNT(*) FROM enrollment WHERE student_id = %s AND course_id = %s",
+            (student_id, course_id),
+        )
+        count = cursor.fetchone()[0]
 
     assert count == 1
 
@@ -100,17 +98,16 @@ def test_get_student_courses():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT c.name FROM course c
                 JOIN enrollment e ON c.id = e.course_id
                 WHERE e.student_id = %s
                 """,
-                (student_id,),
-            )
-            courses = cursor.fetchall()
+            (student_id,),
+        )
+        courses = cursor.fetchall()
 
     assert len(courses) == 2
 
@@ -140,16 +137,15 @@ def test_get_course_students():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT s.name FROM student s
                 JOIN enrollment e ON s.id = e.student_id
                 WHERE e.course_id = %s
                 """,
-                (course_id,),
-            )
-            students = cursor.fetchall()
+            (course_id,),
+        )
+        students = cursor.fetchall()
 
     assert len(students) == 2

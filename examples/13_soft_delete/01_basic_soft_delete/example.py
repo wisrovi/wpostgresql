@@ -2,7 +2,8 @@
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel
 
 from wpostgresql import WPostgreSQL
 from wpostgresql.core.connection import get_connection
@@ -89,19 +90,17 @@ def hard_delete(table_name: str, record_id: int):
 def get_active(table_name: str) -> list:
     """Get all active (non-deleted) records."""
     query = f"SELECT * FROM {table_name} WHERE is_deleted = FALSE"
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            return cursor.fetchall()
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute(query)
+        return cursor.fetchall()
 
 
 def get_deleted(table_name: str) -> list:
     """Get all soft-deleted records."""
     query = f"SELECT * FROM {table_name} WHERE is_deleted = TRUE"
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            return cursor.fetchall()
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute(query)
+        return cursor.fetchall()
 
 
 # Run example

@@ -4,7 +4,6 @@ This module contains unit tests for the TableSync class, focusing on
 index management, table existence checks, and schema metadata retrieval.
 """
 
-from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, Mock, patch
 
 from loguru import logger
@@ -132,7 +131,7 @@ class TestTableSyncIndexes:
         mock_get_conn.return_value.__exit__.return_value = False
 
         sync = TableSync(Person, {"dbname": "test"})
-        indexes: List[Dict[str, str]] = sync.get_indexes()
+        indexes: list[dict[str, str]] = sync.get_indexes()
 
         assert len(indexes) == 2
         assert indexes[0]["name"] == "idx_name"
@@ -219,7 +218,7 @@ class TestTableSyncIndexes:
         mock_get_conn.return_value.__exit__.return_value = False
 
         sync = TableSync(Person, {"dbname": "test"})
-        columns: List[str] = sync.get_columns()
+        columns: list[str] = sync.get_columns()
 
         assert columns == ["id", "name", "age"]
         logger.success("get_columns test passed.")

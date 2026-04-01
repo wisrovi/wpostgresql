@@ -3,9 +3,8 @@
 These tests focus on coverage for async methods in sync and connection modules.
 """
 
-import asyncio
-import sys
 import os
+import sys
 from typing import Optional
 
 import pytest
@@ -14,7 +13,8 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from conftest import DB_CONFIG, cleanup_table
-from wpostgresql import WPostgreSQL, AsyncTableSync
+
+from wpostgresql import AsyncTableSync, WPostgreSQL
 
 
 @pytest.fixture(autouse=True)
@@ -70,7 +70,7 @@ class TestAsyncSyncCoverage:
             id: int = Field(..., description="Primary Key")
             name: str
 
-        db1 = WPostgreSQL(InitialModel, DB_CONFIG)
+        WPostgreSQL(InitialModel, DB_CONFIG)
 
         class UpdatedModel(BaseModel):
             __tablename__ = "async_coverage"
@@ -90,7 +90,7 @@ class TestAsyncSyncCoverage:
         """Test async drop table."""
         logger.info("Testing async drop_table...")
 
-        db = WPostgreSQL(CoverageModel, DB_CONFIG)
+        WPostgreSQL(CoverageModel, DB_CONFIG)
 
         sync = AsyncTableSync(CoverageModel, DB_CONFIG)
 
@@ -108,7 +108,7 @@ class TestAsyncSyncCoverage:
         """Test async get_columns."""
         logger.info("Testing async get_columns...")
 
-        db = WPostgreSQL(CoverageModel, DB_CONFIG)
+        WPostgreSQL(CoverageModel, DB_CONFIG)
 
         sync = AsyncTableSync(CoverageModel, DB_CONFIG)
         columns = await sync.get_columns_async()

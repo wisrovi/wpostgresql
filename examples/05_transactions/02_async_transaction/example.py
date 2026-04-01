@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 from wpostgresql import WPostgreSQL
 
-
 db_config = {
     "dbname": "wpostgresql",
     "user": "postgres",
@@ -29,7 +28,7 @@ async def main():
     await db.insert_async(Person(id=2, name="Bob", balance=500))
 
     try:
-        result = await db.execute_transaction_async(
+        await db.execute_transaction_async(
             [
                 ("UPDATE person SET balance = balance - 100 WHERE id = 1", None),
                 ("UPDATE person SET balance = balance + 100 WHERE id = 2", None),

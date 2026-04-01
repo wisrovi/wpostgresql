@@ -22,10 +22,10 @@ Async usage:
 
 from wpostgresql.builders import QueryBuilder
 from wpostgresql.core.connection import (
+    DEFAULT_POOL_CONFIG,
     AsyncConnectionManager,
     AsyncTransaction,
     ConnectionManager,
-    DEFAULT_POOL_CONFIG,
     Transaction,
     close_global_pools,
     configure_pool,

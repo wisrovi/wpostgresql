@@ -4,7 +4,7 @@ This module contains unit tests for pagination, bulk operations, and
 transaction management in the WPostgreSQL repository class.
 """
 
-from typing import Any, Callable, List, Tuple
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -95,7 +95,7 @@ class TestWPostgreSQLPagination:
         mock_get_conn.return_value.__exit__.return_value = False
 
         db = WPostgreSQL(Person, {"dbname": "test"})
-        results: List[Person] = db.get_paginated(limit=10, offset=0)
+        results: list[Person] = db.get_paginated(limit=10, offset=0)
 
         assert len(results) == 2
         logger.success("get_paginated test passed.")
@@ -143,7 +143,7 @@ class TestWPostgreSQLPagination:
         mock_get_conn.return_value.__exit__.return_value = False
 
         db = WPostgreSQL(Person, {"dbname": "test"})
-        results: List[Person] = db.get_page(page=1, per_page=10)
+        results: list[Person] = db.get_page(page=1, per_page=10)
 
         assert len(results) == 2
         logger.success("get_page test passed.")
@@ -167,7 +167,7 @@ class TestWPostgreSQLPagination:
         mock_get_conn.return_value.__exit__.return_value = False
 
         db = WPostgreSQL(Person, {"dbname": "test"})
-        results: List[Person] = db.get_page(page=-1, per_page=10)
+        results: list[Person] = db.get_page(page=-1, per_page=10)
 
         assert len(results) == 0
         logger.success("get_page with invalid page test passed.")
@@ -191,7 +191,7 @@ class TestWPostgreSQLPagination:
         mock_get_conn.return_value.__exit__.return_value = False
 
         db = WPostgreSQL(Person, {"dbname": "test"})
-        results: List[Person] = db.get_page(page=1, per_page=-5)
+        results: list[Person] = db.get_page(page=1, per_page=-5)
 
         assert len(results) == 0
         logger.success("get_page with invalid per_page test passed.")
@@ -265,7 +265,7 @@ class TestWPostgreSQLBulk:
         mock_get_conn.return_value.__exit__.return_value = False
 
         db = WPostgreSQL(Person, {"dbname": "test"})
-        persons: List[Person] = [
+        persons: list[Person] = [
             Person(id=1, name="John", age=25),
             Person(id=2, name="Jane", age=30),
         ]
@@ -314,7 +314,7 @@ class TestWPostgreSQLBulk:
         mock_get_conn.return_value.__exit__.return_value = False
 
         db = WPostgreSQL(Person, {"dbname": "test"})
-        persons: List[Person] = [Person(id=1, name="John", age=25)]
+        persons: list[Person] = [Person(id=1, name="John", age=25)]
         result: int = db.update_many([(persons[0], 1)])
 
         assert result == 1
@@ -435,7 +435,7 @@ class TestWPostgreSQLTransactions:
 
         db = WPostgreSQL(Person, {"dbname": "test"})
 
-        def operation(txn: Any) -> List[Tuple[Any, ...]]:
+        def operation(txn: Any) -> list[tuple[Any, ...]]:
             """Dummy operation."""
             return txn.execute("SELECT 1", ())
 

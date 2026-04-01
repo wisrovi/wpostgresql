@@ -3,6 +3,7 @@
 import time
 from datetime import datetime
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from wpostgresql import WPostgreSQL
@@ -82,7 +83,7 @@ def create_table_with_timestamps(table_name: str):
 
 def update_with_timestamp(table_name: str, record_id: int, **kwargs):
     """Update record with automatic timestamp."""
-    set_clauses = [f"{k} = %s" for k in kwargs.keys()]
+    set_clauses = [f"{k} = %s" for k in kwargs]
     set_clauses.append("updated_at = CURRENT_TIMESTAMP")
 
     query = f"""

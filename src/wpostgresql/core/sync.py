@@ -172,11 +172,10 @@ class AsyncTableSync:
         """Sync the table with the Pydantic model, adding new columns if necessary (async)."""
         query = "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query, (self.table_name,))
-                rows = await cursor.fetchall()
-                existing_columns = {row[0] for row in rows}
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query, (self.table_name,))
+            rows = await cursor.fetchall()
+            existing_columns = {row[0] for row in rows}
 
         model_fields = set(self.model.model_fields.keys())
         new_fields = model_fields - existing_columns
@@ -199,10 +198,9 @@ class AsyncTableSync:
         """
         query = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = %s)"
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query, (self.table_name,))
-                return (await cursor.fetchone())[0]
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query, (self.table_name,))
+            return (await cursor.fetchone())[0]
 
     async def drop_table_async(self):
         """Drop the table from the database (async)."""
@@ -224,10 +222,9 @@ class AsyncTableSync:
             "WHERE table_name = %s ORDER BY ordinal_position"
         )
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query, (self.table_name,))
-                return [row[0] for row in await cursor.fetchall()]
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query, (self.table_name,))
+            return [row[0] for row in await cursor.fetchall()]
 
     async def create_index_async(
         self, columns: list[str], index_name: Optional[str] = None, unique: bool = False
@@ -273,7 +270,6 @@ class AsyncTableSync:
         """
         query = "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = %s"
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query, (self.table_name,))
-                return [{"name": row[0], "definition": row[1]} for row in await cursor.fetchall()]
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query, (self.table_name,))
+            return [{"name": row[0], "definition": row[1]} for row in await cursor.fetchall()]

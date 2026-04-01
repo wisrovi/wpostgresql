@@ -3,9 +3,9 @@
 Simple tests that mock properly to cover async methods.
 """
 
-import sys
 import os
-from unittest.mock import MagicMock, patch, AsyncMock
+import sys
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from loguru import logger

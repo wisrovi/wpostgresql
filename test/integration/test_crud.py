@@ -7,7 +7,7 @@ PostgreSQL database.
 
 import os
 import sys
-from typing import Generator, List
+from collections.abc import Generator
 
 import psycopg
 import pytest
@@ -18,11 +18,13 @@ from pydantic import BaseModel
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=import-error, wrong-import-position, wrong-import-order
 from conftest import DB_CONFIG, cleanup_table
+
 from wpostgresql import WPostgreSQL
 
 
 class Person(BaseModel):
     """Reference model for CRUD tests."""
+
     id: int
     name: str
     age: int
@@ -64,7 +66,7 @@ class TestInsert:
         db = WPostgreSQL(Person, DB_CONFIG)
         db.insert(Person(id=1, name="Juan", age=30, is_active=True))
 
-        result: List[Person] = db.get_all()
+        result: list[Person] = db.get_all()
         assert len(result) == 1
         assert result[0].name == "Juan"
         assert result[0].age == 30
@@ -80,7 +82,7 @@ class TestInsert:
         db.insert(Person(id=1, name="Juan", age=30, is_active=True))
         db.insert(Person(id=2, name="Ana", age=25, is_active=True))
 
-        result: List[Person] = db.get_all()
+        result: list[Person] = db.get_all()
         assert len(result) == 2
         logger.success("Multiple record insertions test passed.")
 
@@ -92,9 +94,9 @@ class TestInsert:
         logger.info("Testing Pydantic validation during insertion...")
         db = WPostgreSQL(Person, DB_CONFIG)
 
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, TypeError)):
             # id is expected to be int, passing str
-            db.insert(Person(id="invalid", name="Juan", age=30, is_active=True)) # type: ignore
+            db.insert(Person(id="invalid", name="Juan", age=30, is_active=True))  # type: ignore
         logger.success("Pydantic validation test passed.")
 
 
@@ -125,7 +127,7 @@ class TestGetAll:
         db.insert(Person(id=1, name="Juan", age=30, is_active=True))
         db.insert(Person(id=2, name="Ana", age=25, is_active=True))
 
-        result: List[Person] = db.get_all()
+        result: list[Person] = db.get_all()
         assert len(result) == 2
         logger.success("get_all with data test passed.")
 
@@ -146,7 +148,7 @@ class TestGetByField:
         db.insert(Person(id=1, name="Juan", age=30, is_active=True))
         db.insert(Person(id=2, name="Ana", age=25, is_active=True))
 
-        result: List[Person] = db.get_by_field(name="Juan")
+        result: list[Person] = db.get_by_field(name="Juan")
         assert len(result) == 1
         assert result[0].age == 30
         logger.success("get_by_field single field test passed.")
@@ -162,7 +164,7 @@ class TestGetByField:
         db.insert(Person(id=2, name="Ana", age=25, is_active=True))
         db.insert(Person(id=3, name="Pedro", age=25, is_active=True))
 
-        result: List[Person] = db.get_by_field(age=25, is_active=True)
+        result: list[Person] = db.get_by_field(age=25, is_active=True)
         assert len(result) == 2
         logger.success("get_by_field multiple fields test passed.")
 
@@ -175,7 +177,7 @@ class TestGetByField:
         db = WPostgreSQL(Person, DB_CONFIG)
         db.insert(Person(id=1, name="Juan", age=30, is_active=True))
 
-        result: List[Person] = db.get_by_field(name="NoExiste")
+        result: list[Person] = db.get_by_field(name="NoExiste")
         assert len(result) == 0
         logger.success("get_by_field no match test passed.")
 
@@ -188,7 +190,7 @@ class TestGetByField:
         db = WPostgreSQL(Person, DB_CONFIG)
         db.insert(Person(id=1, name="Juan", age=30, is_active=True))
 
-        result: List[Person] = db.get_by_field()
+        result: list[Person] = db.get_by_field()
         assert len(result) == 1
         logger.success("get_by_field empty filters test passed.")
 
@@ -226,7 +228,7 @@ class TestUpdate:
 
         db.update(999, Person(id=999, name="NoExiste", age=20, is_active=True))
 
-        result: List[Person] = db.get_all()
+        result: list[Person] = db.get_all()
         assert len(result) == 1
         logger.success("Update non-existent record test passed.")
 
@@ -249,7 +251,7 @@ class TestDelete:
 
         db.delete(1)
 
-        result: List[Person] = db.get_all()
+        result: list[Person] = db.get_all()
         assert len(result) == 1
         assert result[0].name == "Ana"
         logger.success("Delete record test passed.")
@@ -265,7 +267,7 @@ class TestDelete:
 
         db.delete(999)
 
-        result: List[Person] = db.get_all()
+        result: list[Person] = db.get_all()
         assert len(result) == 1
         logger.success("Delete non-existent record test passed.")
 
@@ -286,6 +288,7 @@ class TestNullHandling:
 
         class PersonStrOpt(BaseModel):
             """Test model for NULL strings."""
+
             __tablename__ = "personstropt"
             id: int
             name: str
@@ -301,7 +304,7 @@ class TestNullHandling:
         finally:
             pg_conn.close()
 
-        result: List[PersonStrOpt] = db.get_all()
+        result: list[PersonStrOpt] = db.get_all()
         assert result[0].nickname == ""
         logger.success("NULL string handling test passed.")
 
@@ -314,6 +317,7 @@ class TestNullHandling:
 
         class PersonIntOpt(BaseModel):
             """Test model for NULL integers."""
+
             __tablename__ = "personintopt"
             id: int
             name: str
@@ -329,7 +333,7 @@ class TestNullHandling:
         finally:
             pg_conn.close()
 
-        result: List[PersonIntOpt] = db.get_all()
+        result: list[PersonIntOpt] = db.get_all()
         assert result[0].age == 0
         logger.success("NULL integer handling test passed.")
 
@@ -342,6 +346,7 @@ class TestNullHandling:
 
         class PersonBoolOpt(BaseModel):
             """Test model for NULL booleans."""
+
             __tablename__ = "personboolopt"
             id: int
             name: str
@@ -357,6 +362,6 @@ class TestNullHandling:
         finally:
             pg_conn.close()
 
-        result: List[PersonBoolOpt] = db.get_all()
+        result: list[PersonBoolOpt] = db.get_all()
         assert result[0].is_active is False
         logger.success("NULL boolean handling test passed.")

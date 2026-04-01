@@ -1,9 +1,7 @@
 """Many-to-Many relationship example (Students <-> Courses)."""
 
-from typing import List
 from pydantic import BaseModel
 
-from wpostgresql import WPostgreSQL
 from wpostgresql.core.connection import get_connection
 
 db_config = {
@@ -107,34 +105,32 @@ def enroll_student(student_id: int, course_id: int, grade: str = None):
 
 def get_student_courses(student_id: int) -> list:
     """Get all courses for a student."""
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT c.id, c.name, c.credits, e.grade
                 FROM course c
                 JOIN enrollment e ON c.id = e.course_id
                 WHERE e.student_id = %s
                 """,
-                (student_id,),
-            )
-            return cursor.fetchall()
+            (student_id,),
+        )
+        return cursor.fetchall()
 
 
 def get_course_students(course_id: int) -> list:
     """Get all students in a course."""
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute(
+            """
                 SELECT s.id, s.name, s.grade, e.grade
                 FROM student s
                 JOIN enrollment e ON s.id = e.student_id
                 WHERE e.course_id = %s
                 """,
-                (course_id,),
-            )
-            return cursor.fetchall()
+            (course_id,),
+        )
+        return cursor.fetchall()
 
 
 create_tables()

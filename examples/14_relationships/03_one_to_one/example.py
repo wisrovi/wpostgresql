@@ -1,9 +1,9 @@
 """One-to-One relationship example (Person <-> Profile)."""
 
 from typing import Optional
+
 from pydantic import BaseModel
 
-from wpostgresql import WPostgreSQL
 from wpostgresql.core.connection import get_connection
 
 db_config = {
@@ -79,15 +79,14 @@ def create_person_with_profile(person: Person, profile_data: dict) -> int:
 
 def get_person_with_profile(person_id: int) -> tuple:
     """Get person with their profile."""
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT id, name, email FROM person WHERE id = %s", (person_id,))
-            person = cursor.fetchone()
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT id, name, email FROM person WHERE id = %s", (person_id,))
+        person = cursor.fetchone()
 
-            cursor.execute(
-                "SELECT bio, avatar_url, twitter FROM profile WHERE person_id = %s", (person_id,)
-            )
-            profile = cursor.fetchone()
+        cursor.execute(
+            "SELECT bio, avatar_url, twitter FROM profile WHERE person_id = %s", (person_id,)
+        )
+        profile = cursor.fetchone()
 
     return person, profile
 
@@ -137,7 +136,7 @@ print("=== One-to-One Relationship ===\n")
 
 person_data, profile_data = get_person_with_profile(1)
 print(f"Person: {person_data[1]} ({person_data[2]})")
-print(f"Profile:")
+print("Profile:")
 print(f"  Bio: {profile_data[0]}")
 print(f"  Avatar: {profile_data[1]}")
 print(f"  Twitter: {profile_data[2]}")

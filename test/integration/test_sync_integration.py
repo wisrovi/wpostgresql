@@ -3,9 +3,10 @@
 Tests that require a real database to verify table synchronization works correctly.
 """
 
-import sys
 import os
-from typing import Generator, Optional
+import sys
+from collections.abc import Generator
+from typing import Optional
 
 import psycopg
 import pytest
@@ -14,7 +15,8 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from conftest import DB_CONFIG, cleanup_table
-from wpostgresql import WPostgreSQL, TableSync
+
+from wpostgresql import TableSync, WPostgreSQL
 
 
 @pytest.fixture(autouse=True)
@@ -43,7 +45,7 @@ class TestTableSync:
         """Test checking if table exists."""
         logger.info("Testing table exists...")
 
-        db = WPostgreSQL(SyncModel, DB_CONFIG)
+        WPostgreSQL(SyncModel, DB_CONFIG)
         sync = TableSync(SyncModel, DB_CONFIG)
 
         exists = sync.table_exists()
@@ -54,7 +56,7 @@ class TestTableSync:
         """Test getting table columns."""
         logger.info("Testing get columns...")
 
-        db = WPostgreSQL(SyncModel, DB_CONFIG)
+        WPostgreSQL(SyncModel, DB_CONFIG)
         sync = TableSync(SyncModel, DB_CONFIG)
 
         columns = sync.get_columns()
@@ -66,10 +68,10 @@ class TestTableSync:
         """Test creating an index."""
         logger.info("Testing create index...")
 
-        db = WPostgreSQL(SyncModel, DB_CONFIG)
+        WPostgreSQL(SyncModel, DB_CONFIG)
         sync = TableSync(SyncModel, DB_CONFIG)
 
-        index_name = f"idx_sync_test_name"
+        index_name = "idx_sync_test_name"
         sync.drop_index(index_name)
 
         sync.create_index(["name"], unique=False)
@@ -83,10 +85,10 @@ class TestTableSync:
         """Test dropping an index."""
         logger.info("Testing drop index...")
 
-        db = WPostgreSQL(SyncModel, DB_CONFIG)
+        WPostgreSQL(SyncModel, DB_CONFIG)
         sync = TableSync(SyncModel, DB_CONFIG)
 
-        index_name = f"idx_sync_test_name"
+        index_name = "idx_sync_test_name"
         sync.create_index(["name"], unique=False)
         sync.drop_index(index_name)
 
@@ -99,7 +101,7 @@ class TestTableSync:
         """Test getting table indexes."""
         logger.info("Testing get indexes...")
 
-        db = WPostgreSQL(SyncModel, DB_CONFIG)
+        WPostgreSQL(SyncModel, DB_CONFIG)
         sync = TableSync(SyncModel, DB_CONFIG)
 
         sync.create_index(["name"], unique=False)
@@ -112,7 +114,7 @@ class TestTableSync:
         """Test dropping a table."""
         logger.info("Testing drop table...")
 
-        db = WPostgreSQL(SyncModel, DB_CONFIG)
+        WPostgreSQL(SyncModel, DB_CONFIG)
         sync = TableSync(SyncModel, DB_CONFIG)
 
         sync.drop_table()
@@ -141,10 +143,10 @@ class TestTableSync:
         """Test creating a unique index."""
         logger.info("Testing create unique index...")
 
-        db = WPostgreSQL(SyncModel, DB_CONFIG)
+        WPostgreSQL(SyncModel, DB_CONFIG)
         sync = TableSync(SyncModel, DB_CONFIG)
 
-        index_name = f"idx_unique_name"
+        index_name = "idx_unique_name"
         sync.drop_index(index_name)
 
         sync.create_index(["name"], unique=True)
@@ -167,7 +169,7 @@ class TestSyncNewColumns:
             id: int = Field(..., description="Primary Key")
             name: str
 
-        db_initial = WPostgreSQL(InitialModel, DB_CONFIG)
+        WPostgreSQL(InitialModel, DB_CONFIG)
 
         class UpdatedModel(BaseModel):
             __tablename__ = "sync_test"
@@ -175,7 +177,7 @@ class TestSyncNewColumns:
             name: str
             age: Optional[int] = None
 
-        db_updated = WPostgreSQL(UpdatedModel, DB_CONFIG)
+        WPostgreSQL(UpdatedModel, DB_CONFIG)
 
         pg_conn = psycopg.connect(**DB_CONFIG)
         pg_conn.autocommit = True

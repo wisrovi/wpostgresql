@@ -1,9 +1,7 @@
 """One-to-Many relationship example (Person -> Addresses)."""
 
-from typing import List, Optional
 from pydantic import BaseModel
 
-from wpostgresql import WPostgreSQL
 from wpostgresql.core.connection import get_connection
 
 db_config = {
@@ -56,7 +54,7 @@ def create_tables():
         conn.commit()
 
 
-def insert_person_with_addresses(person: Person, addresses: List[dict]):
+def insert_person_with_addresses(person: Person, addresses: list[dict]):
     """Insert person and their addresses."""
     with get_connection(db_config) as conn:
         with conn.cursor() as cursor:
@@ -75,35 +73,33 @@ def insert_person_with_addresses(person: Person, addresses: List[dict]):
 
 def get_person_with_addresses(person_id: int) -> tuple:
     """Get person with all their addresses."""
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT id, name, age FROM person WHERE id = %s", (person_id,))
-            person = cursor.fetchone()
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT id, name, age FROM person WHERE id = %s", (person_id,))
+        person = cursor.fetchone()
 
-            cursor.execute(
-                "SELECT id, person_id, street, city, country FROM address WHERE person_id = %s",
-                (person_id,),
-            )
-            addresses = cursor.fetchall()
+        cursor.execute(
+            "SELECT id, person_id, street, city, country FROM address WHERE person_id = %s",
+            (person_id,),
+        )
+        addresses = cursor.fetchall()
 
     return person, addresses
 
 
 def get_all_people_with_addresses() -> list:
     """Get all people with their addresses."""
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT id, name, age FROM person ORDER BY id")
-            people = cursor.fetchall()
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT id, name, age FROM person ORDER BY id")
+        people = cursor.fetchall()
 
-            result = []
-            for person in people:
-                cursor.execute(
-                    "SELECT street, city, country FROM address WHERE person_id = %s",
-                    (person[0],),
-                )
-                addresses = cursor.fetchall()
-                result.append({"person": person, "addresses": addresses})
+        result = []
+        for person in people:
+            cursor.execute(
+                "SELECT street, city, country FROM address WHERE person_id = %s",
+                (person[0],),
+            )
+            addresses = cursor.fetchall()
+            result.append({"person": person, "addresses": addresses})
 
     return result
 

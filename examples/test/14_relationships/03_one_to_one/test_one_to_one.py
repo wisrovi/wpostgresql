@@ -1,5 +1,4 @@
 import pytest
-from pydantic import BaseModel
 
 from examples.test.conftest import DB_CONFIG
 from wpostgresql.core.connection import get_connection
@@ -54,10 +53,9 @@ def test_create_person_with_profile():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM profile WHERE person_id = %s", (person_id,))
-            count = cursor.fetchone()[0]
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM profile WHERE person_id = %s", (person_id,))
+        count = cursor.fetchone()[0]
 
     assert count == 1
 
@@ -77,10 +75,9 @@ def test_get_person_profile():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT bio, twitter FROM profile WHERE person_id = %s", (person_id,))
-            profile = cursor.fetchone()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT bio, twitter FROM profile WHERE person_id = %s", (person_id,))
+        profile = cursor.fetchone()
 
     assert profile[0] == "Engineer"
     assert profile[1] == "@bob_dev"
@@ -110,10 +107,9 @@ def test_update_profile():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT bio, twitter FROM profile WHERE person_id = %s", (person_id,))
-            profile = cursor.fetchone()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT bio, twitter FROM profile WHERE person_id = %s", (person_id,))
+        profile = cursor.fetchone()
 
     assert profile[0] == "Senior Developer"
     assert profile[1] == "@charlie_eng"
@@ -138,9 +134,8 @@ def test_delete_person_deletes_profile():
             cursor.execute("DELETE FROM person WHERE id = %s", (person_id,))
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM profile WHERE person_id = %s", (person_id,))
-            count = cursor.fetchone()[0]
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM profile WHERE person_id = %s", (person_id,))
+        count = cursor.fetchone()[0]
 
     assert count == 0

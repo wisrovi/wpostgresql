@@ -1,6 +1,7 @@
 """Aggregation functions examples."""
 
 from typing import Any
+
 from pydantic import BaseModel
 
 from wpostgresql import WPostgreSQL
@@ -46,10 +47,9 @@ def aggregate(field: str, operation: str) -> Any:
         raise ValueError(f"Invalid operation: {operation}")
 
     query = f"SELECT {operation}({field}) as result FROM person"
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            result = cursor.fetchone()
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchone()
     return result[0] if result else None
 
 
@@ -65,10 +65,9 @@ def aggregate_group_by(field: str, operation: str, group_by: str) -> list[dict]:
         List of results
     """
     query = f"SELECT {group_by}, {operation}({field}) as result FROM person GROUP BY {group_by}"
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-            rows = cursor.fetchall()
+    with get_connection(db_config) as conn, conn.cursor() as cursor:
+        cursor.execute(query)
+        rows = cursor.fetchall()
     return [{"group": row[0], "result": row[1]} for row in rows]
 
 

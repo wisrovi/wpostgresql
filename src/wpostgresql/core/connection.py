@@ -2,8 +2,9 @@
 
 import logging
 import threading
-from contextlib import contextmanager
-from typing import Any, Generator, Optional, Tuple
+from collections.abc import Generator
+from contextlib import contextmanager, suppress
+from typing import Any, Optional
 
 import psycopg
 from psycopg import AsyncConnection, Connection
@@ -109,10 +110,8 @@ def configure_pool(
         logger.info("Configured sync pool: min=%d, max=%d", min_size, max_size)
 
         if _global_async_pool is not None:
-            try:
+            with suppress(Exception):
                 _global_async_pool.close()
-            except Exception:
-                pass
         _global_async_pool = None
         # Store config for later async pool creation
         _configured_pool = {"db_config": db_config, "min_size": min_size, "max_size": max_size}
@@ -120,10 +119,8 @@ def configure_pool(
         logger.info("Configured sync pool: min=%d, max=%d", min_size, max_size)
 
         if _global_async_pool is not None:
-            try:
+            with suppress(Exception):
                 _global_async_pool.close()
-            except Exception:
-                pass
         # Reset async pool to None so it will be recreated with new config
         # when first accessed in an async context
         _global_async_pool = None
@@ -276,7 +273,7 @@ class Transaction:
         """Manually rollback the transaction."""
         self.conn.rollback()
 
-    def execute(self, query: str, values: Optional[Tuple[Any, ...]] = None) -> Any:
+    def execute(self, query: str, values: Optional[tuple[Any, ...]] = None) -> Any:
         """Execute a query within the transaction.
 
         Args:
@@ -332,7 +329,7 @@ class AsyncTransaction:
         """Manually rollback the async transaction."""
         await self.conn.rollback()
 
-    async def execute(self, query: str, values: Optional[Tuple[Any, ...]] = None) -> Any:
+    async def execute(self, query: str, values: Optional[tuple[Any, ...]] = None) -> Any:
         """Execute an async query within the transaction.
 
         Args:

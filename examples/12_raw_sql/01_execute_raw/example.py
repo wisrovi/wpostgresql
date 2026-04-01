@@ -30,30 +30,27 @@ db.insert(Person(id=2, name="Bob", age=25))
 print("=== Raw SQL Examples ===\n")
 
 # 1. Simple query
-with get_connection(db_config) as conn:
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT * FROM person")
-        rows = cursor.fetchall()
-        print("1. All records:")
-        for row in rows:
-            print(f"   {row}")
+with get_connection(db_config) as conn, conn.cursor() as cursor:
+    cursor.execute("SELECT * FROM person")
+    rows = cursor.fetchall()
+    print("1. All records:")
+    for row in rows:
+        print(f"   {row}")
 
 # 2. Query with parameters
-with get_connection(db_config) as conn:
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT * FROM person WHERE age > %s", (26,))
-        rows = cursor.fetchall()
-        print("\n2. People older than 26:")
-        for row in rows:
-            print(f"   {row}")
+with get_connection(db_config) as conn, conn.cursor() as cursor:
+    cursor.execute("SELECT * FROM person WHERE age > %s", (26,))
+    rows = cursor.fetchall()
+    print("\n2. People older than 26:")
+    for row in rows:
+        print(f"   {row}")
 
 # 3. Query with string parameter
-with get_connection(db_config) as conn:
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT * FROM person WHERE name = %s", ("Alice",))
-        row = cursor.fetchone()
-        print("\n3. Person named Alice:")
-        print(f"   {row}")
+with get_connection(db_config) as conn, conn.cursor() as cursor:
+    cursor.execute("SELECT * FROM person WHERE name = %s", ("Alice",))
+    row = cursor.fetchone()
+    print("\n3. Person named Alice:")
+    print(f"   {row}")
 
 # 4. INSERT with RETURNING
 with get_connection(db_config) as conn:
@@ -96,13 +93,12 @@ db.execute_transaction(
     ]
 )
 
-with get_connection(db_config) as conn:
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT * FROM person ORDER BY id")
-        rows = cursor.fetchall()
-        print("   Final state:")
-        for row in rows:
-            print(f"   {row}")
+with get_connection(db_config) as conn, conn.cursor() as cursor:
+    cursor.execute("SELECT * FROM person ORDER BY id")
+    rows = cursor.fetchall()
+    print("   Final state:")
+    for row in rows:
+        print(f"   {row}")
 
 # 8. Using execute_transaction
 print("\n8. Using execute_transaction:")

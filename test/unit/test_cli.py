@@ -6,7 +6,6 @@ behave as expected.
 """
 
 import tempfile
-from typing import Any, Type
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -452,7 +451,7 @@ class Person(BaseModel):
             )
             model_path = f.name
 
-        model: Type[BaseModel] = load_model(model_path)
+        model: type[BaseModel] = load_model(model_path)
         assert model.__name__ == "Person"
         assert "id" in model.model_fields
         assert "name" in model.model_fields

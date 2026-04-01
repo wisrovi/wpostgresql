@@ -55,6 +55,7 @@ Issues = "https://github.com/wisrovi/wpostgresql/issues"
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+exclude = ["examples/", "stress_test/", "docs/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
