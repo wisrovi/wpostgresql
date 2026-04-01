@@ -1,9 +1,14 @@
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath("../src"))
+
 project = "wpostgresql"
 copyright = "2026, William Steve Rodriguez Villamizar"
 author = "William Steve Rodriguez Villamizar"
 
-release = "0.3.0"
-version = "0.3.0"
+release = "1.0.0"
+version = "1.0.0"
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -59,18 +64,13 @@ html_theme_options = {
     "show_navbar_depth": 3,
     "show_toc_level": 3,
     "navbar_align": "left",
-    "announcement": "🚀 New version 0.3.0 released with async support and bulk operations!",
+    "announcement": "🚀 Version 1.0.0 LTS released with async support, connection pooling, and 95% coverage!",
 }
 
 # Custom sidebar templates
 html_sidebars = {
     "**": ["navbar-logo.html", "icon-links.html", "search-field.html", "sbt-sidebar-nav.html"]
 }
-
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath("../src"))
 
 # -- Options for intersphinx -------------------------------------------------
 intersphinx_mapping = {
@@ -96,11 +96,10 @@ napoleon_type_aliases = {
 # -- Options for autodoc ----------------------------------------------------
 autodoc_default_options = {
     "members": True,
-    "member-order": "bysource",
+    "member-order": "alphabetical",
     "special-members": "__init__",
     "undoc-members": True,
     "show-inheritance": True,
-    "member-order": "alphabetical",
     "exclude-members": "__weakref__",
 }
 autodoc_mock_imports = []
