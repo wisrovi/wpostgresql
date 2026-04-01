@@ -15,10 +15,9 @@ import random
 import string
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from threading import Lock
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -125,7 +124,7 @@ async def async_op(db, op, uid, rid):
 
 
 def run_sync(cfg: StressConfig):
-    from wpostgresql import WPostgreSQL, TableSync
+    from wpostgresql import TableSync, WPostgreSQL
 
     sync = TableSync(Account, cfg.db_config)
     sync.drop_table()
@@ -154,7 +153,7 @@ def run_sync(cfg: StressConfig):
 
 
 async def run_async(cfg: StressConfig):
-    from wpostgresql import WPostgreSQL, AsyncTableSync
+    from wpostgresql import AsyncTableSync, WPostgreSQL
 
     sync = AsyncTableSync(Account, cfg.db_config)
     await sync.drop_table_async()
@@ -241,7 +240,7 @@ def main():
         verbose=False,
     )
 
-    print(f"\nwpostgresql Stress Test")
+    print("\nwpostgresql Stress Test")
     print(
         f"Accounts: {a.users}, Requests: {a.requests}, Mode: {'ASYNC' if a.use_async else 'SYNC'}"
     )

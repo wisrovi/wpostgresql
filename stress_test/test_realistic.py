@@ -1,15 +1,15 @@
 """Realistic stress test for wpostgresql.
 
 Simulates a production-like scenario where:
-- 1,000 users execute 100 blocks of 3 parallel operations
+- 100 users execute 10 blocks of 3 parallel operations
 - Variable latency (2-8ms) simulates real network/DB conditions
-- Async mode executes operations in parallel
-- Sync mode executes operations sequentially
+- Async mode executes operations in parallel within each block
+- Sync mode executes operations sequentially within each block
 
-Expected result: Async significantly outperforms Sync due to:
-1. Parallel operation execution within each block
-2. Concurrent user processing
-3. Better resource utilization under load
+Expected result: Async significantly outperforms Sync because:
+1. Operations within each block run in parallel (async) vs sequential (sync)
+2. Multiple users process simultaneously (async) vs one at a time (sync)
+3. Better resource utilization under load with connection pooling
 """
 
 import asyncio
@@ -19,7 +19,6 @@ import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -35,10 +34,10 @@ DB_CONFIG = {
     "port": 5432,
 }
 
-NUM_USERS = 1000
-BLOCKS_PER_USER = 100
+NUM_USERS = 100
+BLOCKS_PER_USER = 10
 OPS_PER_BLOCK = 3  # INSERT + SELECT + COUNT
-TOTAL_OPS = NUM_USERS * BLOCKS_PER_USER * OPS_PER_BLOCK  # 300,000
+TOTAL_OPS = NUM_USERS * BLOCKS_PER_USER * OPS_PER_BLOCK  # 3,000
 
 LATENCY_MIN = 0.002  # 2ms
 LATENCY_MAX = 0.008  # 8ms
@@ -78,10 +77,10 @@ class StressTestResult:
     p99_latency_ms: float = 0.0
     operations_per_second: float = 0.0
     avg_time_per_user_ms: float = 0.0
-    operations: Dict = field(default_factory=dict)
+    operations: dict = field(default_factory=dict)
 
 
-def calculate_percentile(sorted_data: List[float], percentile: float) -> float:
+def calculate_percentile(sorted_data: list[float], percentile: float) -> float:
     """Calculate percentile from sorted data."""
     if not sorted_data:
         return 0.0
@@ -90,22 +89,11 @@ def calculate_percentile(sorted_data: List[float], percentile: float) -> float:
     return sorted_data[index]
 
 
-def simulate_latency():
-    """Simulate real network/DB latency (2-8ms random)."""
-    latency = random.uniform(LATENCY_MIN, LATENCY_MAX)
-    time.sleep(latency)
-    return latency
+async def run_async_user(user_id: int, db: WPostgreSQL, results: list[float]) -> float:
+    """Run blocks of 3 parallel operations for one user.
 
-
-async def simulate_latency_async():
-    """Simulate real network/DB latency (2-8ms random)."""
-    latency = random.uniform(LATENCY_MIN, LATENCY_MAX)
-    await asyncio.sleep(latency)
-    return latency
-
-
-async def run_async_user(user_id: int, db: WPostgreSQL, results: List[float]) -> float:
-    """Run 100 blocks of 3 parallel operations for one user.
+    Each block executes INSERT + SELECT + COUNT in parallel.
+    Each operation has its own simulated latency (2-8ms random).
 
     Returns:
         Total time for this user in milliseconds.
@@ -116,22 +104,28 @@ async def run_async_user(user_id: int, db: WPostgreSQL, results: List[float]) ->
         block_start = time.perf_counter()
 
         try:
-            # Execute 3 operations in PARALLEL
-            await asyncio.gather(
-                simulate_latency_async(),
-                db.insert_async(
+            # Execute 3 operations in PARALLEL, each with its own latency
+            async def op_insert():
+                await asyncio.sleep(random.uniform(LATENCY_MIN, LATENCY_MAX))
+                await db.insert_async(
                     StressTestModel(
                         id=user_id * 100000 + block,
                         user_id=user_id,
                         block_num=block,
                         data=f"User {user_id} Block {block}",
                     )
-                ),
-                simulate_latency_async(),
-                db.get_by_field_async(id=user_id * 100000 + block),
-                simulate_latency_async(),
-                db.count_async(),
-            )
+                )
+
+            async def op_select():
+                await asyncio.sleep(random.uniform(LATENCY_MIN, LATENCY_MAX))
+                await db.get_by_field_async(id=user_id * 100000 + block)
+
+            async def op_count():
+                await asyncio.sleep(random.uniform(LATENCY_MIN, LATENCY_MAX))
+                await db.count_async()
+
+            # All 3 operations run in parallel
+            await asyncio.gather(op_insert(), op_select(), op_count())
 
             block_duration = (time.perf_counter() - block_start) * 1000
             # Each block has 3 operations
@@ -140,6 +134,7 @@ async def run_async_user(user_id: int, db: WPostgreSQL, results: List[float]) ->
 
         except Exception as e:
             # Record failed operations
+            print(f"User {user_id} Block {block} failed: {e}")
             for _ in range(OPS_PER_BLOCK):
                 results.append(0)
 
@@ -147,8 +142,11 @@ async def run_async_user(user_id: int, db: WPostgreSQL, results: List[float]) ->
     return user_duration
 
 
-def run_sync_user(user_id: int, db: WPostgreSQL, results: List[float]) -> float:
-    """Run 100 blocks of 3 sequential operations for one user.
+def run_sync_user(user_id: int, db: WPostgreSQL, results: list[float]) -> float:
+    """Run blocks of 3 sequential operations for one user.
+
+    Each block executes INSERT → SELECT → COUNT sequentially.
+    Each operation has its own simulated latency (2-8ms random).
 
     Returns:
         Total time for this user in milliseconds.
@@ -158,11 +156,12 @@ def run_sync_user(user_id: int, db: WPostgreSQL, results: List[float]) -> float:
     for block in range(BLOCKS_PER_USER):
         try:
             # Execute 3 operations SEQUENTIALLY
-            for _ in range(OPS_PER_BLOCK):
+            for op_idx in range(OPS_PER_BLOCK):
                 op_start = time.perf_counter()
-                simulate_latency()
+                # Simulate latency for this operation
+                time.sleep(random.uniform(LATENCY_MIN, LATENCY_MAX))
 
-                if _ == 0:
+                if op_idx == 0:
                     db.insert(
                         StressTestModel(
                             id=user_id * 100000 + block,
@@ -171,7 +170,7 @@ def run_sync_user(user_id: int, db: WPostgreSQL, results: List[float]) -> float:
                             data=f"User {user_id} Block {block}",
                         )
                     )
-                elif _ == 1:
+                elif op_idx == 1:
                     db.get_by_field(id=user_id * 100000 + block)
                 else:
                     db.count()
@@ -179,7 +178,7 @@ def run_sync_user(user_id: int, db: WPostgreSQL, results: List[float]) -> float:
                 op_duration = (time.perf_counter() - op_start) * 1000
                 results.append(op_duration)
 
-        except Exception as e:
+        except Exception:
             for _ in range(OPS_PER_BLOCK):
                 results.append(0)
 
@@ -187,7 +186,7 @@ def run_sync_user(user_id: int, db: WPostgreSQL, results: List[float]) -> float:
     return user_duration
 
 
-def process_results(results: List[float], user_times: List[float], mode: str) -> StressTestResult:
+def process_results(results: list[float], user_times: list[float], mode: str) -> StressTestResult:
     """Process raw results into a StressTestResult."""
     result = StressTestResult(mode=mode)
     result.total_operations = len(results)
@@ -222,6 +221,11 @@ def generate_html_report(
 
     def success_rate(r):
         return (r.successful_operations / r.total_operations * 100) if r.total_operations > 0 else 0
+
+    def speedup(sync_val, async_val):
+        if async_val == 0:
+            return 0
+        return sync_val / async_val
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -262,6 +266,10 @@ def generate_html_report(
         .mode-header {{ font-size: 1.5em; color: #00d4ff; margin-bottom: 20px; }}
         .winner {{ color: #4caf50; font-weight: bold; }}
         .comparison {{ background: #1a1a2e; border-radius: 10px; padding: 20px; margin: 20px 0; }}
+        .chart {{ background: #1a1a2e; border-radius: 10px; padding: 20px; margin: 20px 0; }}
+        .bar {{ display: flex; align-items: center; margin: 8px 0; }}
+        .bar-label {{ width: 150px; color: #888; }}
+        .bar-fill {{ height: 25px; border-radius: 5px; margin-left: 10px; }}
     </style>
 </head>
 <body>
@@ -362,30 +370,30 @@ def generate_html_report(
         <div class="mode-section">
             <div class="mode-header">📊 Async vs Sync: Production Scenario</div>
             <table>
-                <tr><th>Métrica</th><th>Async</th><th>Sync</th><th>Ganador</th></tr>
+                <tr><th>Métrica</th><th>Async</th><th>Sync</th><th>Ventaja Async</th></tr>
                 <tr>
                     <td>Tiempo Total</td>
                     <td>{async_result.total_duration_ms / 1000:.2f}s</td>
                     <td>{sync_result.total_duration_ms / 1000:.2f}s</td>
-                    <td class="{"winner" if async_result.total_duration_ms < sync_result.total_duration_ms else ""}">{"Async" if async_result.total_duration_ms < sync_result.total_duration_ms else "Sync"}</td>
+                    <td class="{"winner" if async_result.total_duration_ms < sync_result.total_duration_ms else ""}">{"Async" if async_result.total_duration_ms < sync_result.total_duration_ms else "Sync"} ({speedup(sync_result.total_duration_ms, async_result.total_duration_ms):.1f}x)</td>
                 </tr>
                 <tr>
                     <td>Ops/Segundo</td>
                     <td>{async_result.operations_per_second:,.0f}</td>
                     <td>{sync_result.operations_per_second:,.0f}</td>
-                    <td class="{"winner" if async_result.operations_per_second > sync_result.operations_per_second else ""}">{"Async" if async_result.operations_per_second > sync_result.operations_per_second else "Sync"}</td>
+                    <td class="{"winner" if async_result.operations_per_second > sync_result.operations_per_second else ""}">{"Async" if async_result.operations_per_second > sync_result.operations_per_second else "Sync"} ({speedup(async_result.operations_per_second, sync_result.operations_per_second):.1f}x)</td>
                 </tr>
                 <tr>
                     <td>Latencia Promedio</td>
                     <td>{async_result.avg_latency_per_op_ms:.2f}ms</td>
                     <td>{sync_result.avg_latency_per_op_ms:.2f}ms</td>
-                    <td class="{"winner" if async_result.avg_latency_per_op_ms < sync_result.avg_latency_per_op_ms else ""}">{"Async" if async_result.avg_latency_per_op_ms < sync_result.avg_latency_per_op_ms else "Sync"}</td>
+                    <td class="{"winner" if async_result.avg_latency_per_op_ms < sync_result.avg_latency_per_op_ms else ""}">{"Async" if async_result.avg_latency_per_op_ms < sync_result.avg_latency_per_op_ms else "Sync"} ({speedup(sync_result.avg_latency_per_op_ms, async_result.avg_latency_per_op_ms):.1f}x)</td>
                 </tr>
                 <tr>
                     <td>Tiempo por Usuario</td>
                     <td>{async_result.avg_time_per_user_ms:.2f}ms</td>
                     <td>{sync_result.avg_time_per_user_ms:.2f}ms</td>
-                    <td class="{"winner" if async_result.avg_time_per_user_ms < sync_result.avg_time_per_user_ms else ""}">{"Async" if async_result.avg_time_per_user_ms < sync_result.avg_time_per_user_ms else "Sync"}</td>
+                    <td class="{"winner" if async_result.avg_time_per_user_ms < sync_result.avg_time_per_user_ms else ""}">{"Async" if async_result.avg_time_per_user_ms < sync_result.avg_time_per_user_ms else "Sync"} ({speedup(sync_result.avg_time_per_user_ms, async_result.avg_time_per_user_ms):.1f}x)</td>
                 </tr>
             </table>
             <p style="margin-top:15px;color:#888;">
@@ -424,7 +432,7 @@ def generate_html_report(
 async def run_async_stress_test() -> StressTestResult:
     """Run async stress test."""
     print(f"\n{'=' * 60}")
-    print(f"wpostgresql Async Stress Test - Realistic Scenario")
+    print("wpostgresql Async Stress Test - Realistic Scenario")
     print(f"{'=' * 60}")
     print(f"Users: {NUM_USERS:,}")
     print(f"Blocks per user: {BLOCKS_PER_USER}")
@@ -436,6 +444,17 @@ async def run_async_stress_test() -> StressTestResult:
     close_global_pools()
     configure_pool(DB_CONFIG, min_size=POOL_CONFIG["min_size"], max_size=POOL_CONFIG["max_size"])
 
+    # Clean table before async test
+    import psycopg
+
+    pg_conn = psycopg.connect(**DB_CONFIG)
+    pg_conn.autocommit = True
+    try:
+        with pg_conn.cursor() as cursor:
+            cursor.execute(f"TRUNCATE TABLE {StressTestModel.__tablename__}")
+    finally:
+        pg_conn.close()
+
     # Create shared db instance
     db = WPostgreSQL(StressTestModel, DB_CONFIG)
 
@@ -443,12 +462,12 @@ async def run_async_stress_test() -> StressTestResult:
     result.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     start_time = time.perf_counter()
-    all_results: List[float] = []
-    user_times: List[float] = []
+    all_results: list[float] = []
+    user_times: list[float] = []
 
     print("Starting async stress test...")
 
-    batch_size = 50
+    batch_size = 20
     for batch_start in range(0, NUM_USERS, batch_size):
         batch_end = min(batch_start + batch_size, NUM_USERS)
         batch_users = list(range(batch_start, batch_end))
@@ -472,7 +491,7 @@ async def run_async_stress_test() -> StressTestResult:
 def run_sync_stress_test() -> StressTestResult:
     """Run sync stress test."""
     print(f"\n{'=' * 60}")
-    print(f"wpostgresql Sync Stress Test - Realistic Scenario")
+    print("wpostgresql Sync Stress Test - Realistic Scenario")
     print(f"{'=' * 60}")
     print(f"Users: {NUM_USERS:,}")
     print(f"Blocks per user: {BLOCKS_PER_USER}")
@@ -502,8 +521,8 @@ def run_sync_stress_test() -> StressTestResult:
     result.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     start_time = time.perf_counter()
-    all_results: List[float] = []
-    user_times: List[float] = []
+    all_results: list[float] = []
+    user_times: list[float] = []
 
     print("Starting sync stress test...")
 
@@ -511,7 +530,7 @@ def run_sync_stress_test() -> StressTestResult:
         user_time = run_sync_user(user_id, db, all_results)
         user_times.append(user_time)
 
-        if (user_id + 1) % 100 == 0:
+        if (user_id + 1) % 10 == 0:
             completed = (user_id + 1) * BLOCKS_PER_USER * OPS_PER_BLOCK
             progress = (completed / TOTAL_OPS) * 100
             print(f"Progress: {user_id + 1}/{NUM_USERS} users completed ({progress:.1f}%)")

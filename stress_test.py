@@ -10,7 +10,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -18,10 +18,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from wpostgresql import (
     WPostgreSQL,
-    configure_pool,
     close_global_pools,
     configure_pool,
-    close_global_pools,
 )
 
 DB_CONFIG = {
@@ -83,10 +81,10 @@ class StressTestResult:
     p95_response_time_ms: float = 0.0
     p99_response_time_ms: float = 0.0
     requests_per_second: float = 0.0
-    operations: Dict = field(default_factory=dict)
+    operations: dict = field(default_factory=dict)
 
 
-def calculate_percentile(sorted_data: List[float], percentile: float) -> float:
+def calculate_percentile(sorted_data: list[float], percentile: float) -> float:
     """Calculate percentile from sorted data."""
     if not sorted_data:
         return 0.0
@@ -96,7 +94,7 @@ def calculate_percentile(sorted_data: List[float], percentile: float) -> float:
 
 
 async def simulate_user_async(
-    user_id: int, db_config: dict, results: List[RequestResult], db: WPostgreSQL
+    user_id: int, db_config: dict, results: list[RequestResult], db: WPostgreSQL
 ) -> None:
     """Simulate a single user making async requests."""
     # Reuse the shared db instance to avoid pool exhaustion from table sync
@@ -146,7 +144,7 @@ async def simulate_user_async(
 
 
 def simulate_user_sync(
-    user_id: int, db_config: dict, results: List[RequestResult], db: WPostgreSQL
+    user_id: int, db_config: dict, results: list[RequestResult], db: WPostgreSQL
 ) -> None:
     """Simulate a single user making sync requests."""
     # Reuse the shared db instance to avoid pool exhaustion from table sync
@@ -195,7 +193,7 @@ def simulate_user_sync(
             )
 
 
-def process_results(results: List[RequestResult], mode: str) -> StressTestResult:
+def process_results(results: list[RequestResult], mode: str) -> StressTestResult:
     """Process raw results into a StressTestResult."""
     result = StressTestResult(mode=mode)
     result.total_requests = len(results)
@@ -219,7 +217,7 @@ def process_results(results: List[RequestResult], mode: str) -> StressTestResult
         else 0
     )
 
-    operations: Dict = {}
+    operations: dict = {}
     for r in results:
         if r.operation not in operations:
             operations[r.operation] = {"count": 0, "success": 0, "failed": 0, "total_time": 0.0}
@@ -506,7 +504,7 @@ def generate_html_report(
 async def run_async_stress_test() -> StressTestResult:
     """Run async stress test."""
     print(f"\n{'=' * 60}")
-    print(f"wpostgresql Async Stress Test - v1.0.0 LTS")
+    print("wpostgresql Async Stress Test - v1.0.0 LTS")
     print(f"{'=' * 60}")
     print(f"Users: {NUM_USERS}")
     print(f"Requests per user: {REQUESTS_PER_USER}")
@@ -524,7 +522,7 @@ async def run_async_stress_test() -> StressTestResult:
     result.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     start_time = time.perf_counter()
-    all_results: List[RequestResult] = []
+    all_results: list[RequestResult] = []
 
     print("Starting async stress test...")
 
@@ -553,7 +551,7 @@ async def run_async_stress_test() -> StressTestResult:
 def run_sync_stress_test() -> StressTestResult:
     """Run sync stress test."""
     print(f"\n{'=' * 60}")
-    print(f"wpostgresql Sync Stress Test - v1.0.0 LTS")
+    print("wpostgresql Sync Stress Test - v1.0.0 LTS")
     print(f"{'=' * 60}")
     print(f"Users: {NUM_USERS}")
     print(f"Requests per user: {REQUESTS_PER_USER}")
@@ -582,7 +580,7 @@ def run_sync_stress_test() -> StressTestResult:
     result.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     start_time = time.perf_counter()
-    all_results: List[RequestResult] = []
+    all_results: list[RequestResult] = []
 
     print("Starting sync stress test...")
 
