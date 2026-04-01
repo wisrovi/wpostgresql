@@ -4,15 +4,16 @@ Tests that require a real database connection to verify pool behavior
 and transaction management work correctly.
 """
 
-import sys
 import os
-from typing import Generator
+import sys
+from collections.abc import Generator
 
 import pytest
 from loguru import logger
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from conftest import DB_CONFIG, cleanup_table
+
 from wpostgresql import ConnectionManager, Transaction
 
 
@@ -53,7 +54,7 @@ class TestConnectionPool:
         logger.info("Testing close all connections...")
 
         manager = ConnectionManager(DB_CONFIG)
-        conn = manager.get_connection()
+        manager.get_connection()
         manager.close_all()
         logger.success("Close all test passed.")
 

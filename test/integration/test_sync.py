@@ -7,7 +7,8 @@ creating tables if they do not exist.
 
 import os
 import sys
-from typing import Generator, List, Optional
+from collections.abc import Generator
+from typing import Optional
 
 import psycopg
 import pytest
@@ -18,6 +19,7 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=import-error, wrong-import-position, wrong-import-order
 from conftest import DB_CONFIG, cleanup_table
+
 from wpostgresql import WPostgreSQL
 
 
@@ -82,7 +84,7 @@ class TestSyncTable:
                 cursor.execute(
                     "SELECT column_name FROM information_schema.columns WHERE table_name = 'person'"
                 )
-                columns: List[str] = [row[0] for row in cursor.fetchall()]
+                columns: list[str] = [row[0] for row in cursor.fetchall()]
                 assert "email" in columns
         finally:
             pg_conn.close()
@@ -159,7 +161,7 @@ class TestSyncTable:
                 cursor.execute(
                     "SELECT column_name FROM information_schema.columns WHERE table_name = 'person'"
                 )
-                columns: List[str] = [row[0] for row in cursor.fetchall()]
+                columns: list[str] = [row[0] for row in cursor.fetchall()]
                 assert "email" in columns
                 assert "phone" in columns
                 assert "address" in columns

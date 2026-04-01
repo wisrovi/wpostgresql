@@ -3,9 +3,10 @@
 Tests that require a real database to verify repository CRUD operations.
 """
 
-import sys
 import os
-from typing import Generator, Optional
+import sys
+from collections.abc import Generator
+from typing import Optional
 
 import pytest
 from loguru import logger
@@ -13,6 +14,7 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from conftest import DB_CONFIG, cleanup_table
+
 from wpostgresql import WPostgreSQL
 
 
@@ -198,7 +200,7 @@ class TestRepositoryBulk:
             ]
         )
 
-        deleted = db.delete_many([1, 2])
+        db.delete_many([1, 2])
 
         result = db.get_all()
         assert len(result) == 1
