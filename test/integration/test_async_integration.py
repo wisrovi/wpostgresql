@@ -3,9 +3,8 @@
 Tests that require a real PostgreSQL database to cover async methods.
 """
 
-import asyncio
-import sys
 import os
+import sys
 from typing import Optional
 
 import pytest
@@ -14,6 +13,7 @@ from pydantic import BaseModel, Field
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from conftest import DB_CONFIG, cleanup_table
+
 from wpostgresql import WPostgreSQL
 
 
@@ -249,9 +249,9 @@ class TestAsyncRepositoryIntegration:
         logger.success("Async execute_transaction test passed.")
 
     @pytest.mark.asyncio
-    async def test_execute_transaction_async(self) -> None:
-        """Test async execute_transaction."""
-        logger.info("Testing async execute_transaction...")
+    async def test_with_transaction_async(self) -> None:
+        """Test async with_transaction."""
+        logger.info("Testing async with_transaction...")
 
         db = WPostgreSQL(AsyncTestModel, DB_CONFIG)
 
@@ -289,9 +289,9 @@ class TestAsyncRepositoryIntegration:
         logger.success("Async execute_transaction exception test passed.")
 
     @pytest.mark.asyncio
-    async def test_with_transaction_async(self) -> None:
-        """Test async with_transaction."""
-        logger.info("Testing async with_transaction...")
+    async def test_with_transaction_async_custom(self) -> None:
+        """Test async with_transaction with custom function."""
+        logger.info("Testing async with_transaction custom...")
 
         db = WPostgreSQL(AsyncTestModel, DB_CONFIG)
 
@@ -307,7 +307,7 @@ class TestAsyncRepositoryIntegration:
         except Exception as e:
             logger.warning(f"Async with_transaction: {e}")
 
-        logger.success("Async with_transaction test passed.")
+        logger.success("Async with_transaction custom test passed.")
 
     @pytest.mark.asyncio
     async def test_get_paginated_async_with_order(self) -> None:
