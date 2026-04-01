@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 from wpostgresql import WPostgreSQL
 
-
 db_config = {
     "dbname": "wpostgresql",
     "user": "postgres",

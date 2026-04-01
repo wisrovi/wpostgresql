@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from loguru import logger
+from pydantic import BaseModel
 
 from wpostgresql import WPostgreSQL
 

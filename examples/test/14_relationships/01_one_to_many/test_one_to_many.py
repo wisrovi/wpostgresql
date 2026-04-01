@@ -65,10 +65,9 @@ def test_insert_person_with_addresses():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM address WHERE person_id = %s", (person_id,))
-            count = cursor.fetchone()[0]
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM address WHERE person_id = %s", (person_id,))
+        count = cursor.fetchone()[0]
 
     assert count == 1
 
@@ -90,10 +89,9 @@ def test_get_person_addresses():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM address WHERE person_id = %s", (person_id,))
-            addresses = cursor.fetchall()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT * FROM address WHERE person_id = %s", (person_id,))
+        addresses = cursor.fetchall()
 
     assert len(addresses) == 2
 
@@ -116,9 +114,8 @@ def test_cascade_delete_addresses():
             cursor.execute("DELETE FROM person WHERE id = %s", (person_id,))
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM address WHERE person_id = %s", (person_id,))
-            count = cursor.fetchone()[0]
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM address WHERE person_id = %s", (person_id,))
+        count = cursor.fetchone()[0]
 
     assert count == 0

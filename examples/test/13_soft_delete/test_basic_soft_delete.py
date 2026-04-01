@@ -1,8 +1,7 @@
 import pytest
 from pydantic import BaseModel
 
-from examples.test.conftest import DB_CONFIG, cleanup_table
-from wpostgresql import WPostgreSQL
+from examples.test.conftest import DB_CONFIG
 from wpostgresql.core.connection import get_connection
 
 
@@ -53,10 +52,9 @@ def test_soft_delete_marks_record():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT is_deleted FROM person_soft WHERE name = %s", ("Bob",))
-            result = cursor.fetchone()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT is_deleted FROM person_soft WHERE name = %s", ("Bob",))
+        result = cursor.fetchone()
 
     assert result[0] is True
 
@@ -76,10 +74,9 @@ def test_get_active_records_excludes_deleted():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM person_soft WHERE is_deleted = FALSE")
-            rows = cursor.fetchall()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT * FROM person_soft WHERE is_deleted = FALSE")
+        rows = cursor.fetchall()
 
     assert len(rows) == 1
     assert rows[0][1] == "Alice"
@@ -107,10 +104,9 @@ def test_restore_soft_deleted_record():
             )
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT is_deleted FROM person_soft WHERE name = %s", ("Bob",))
-            result = cursor.fetchone()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT is_deleted FROM person_soft WHERE name = %s", ("Bob",))
+        result = cursor.fetchone()
 
     assert result[0] is False
 
@@ -127,9 +123,8 @@ def test_hard_delete_removes_record():
             cursor.execute("DELETE FROM person_soft WHERE name = %s", ("Bob",))
         conn.commit()
 
-    with get_connection(DB_CONFIG) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM person_soft")
-            result = cursor.fetchone()
+    with get_connection(DB_CONFIG) as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM person_soft")
+        result = cursor.fetchone()
 
     assert result[0] == 1
