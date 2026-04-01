@@ -6,7 +6,7 @@ are correctly mapped to their corresponding PostgreSQL data types.
 
 import os
 import sys
-from typing import Dict, Generator
+from collections.abc import Generator
 
 import psycopg
 import pytest
@@ -17,6 +17,7 @@ from pydantic import BaseModel
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=import-error, wrong-import-position, wrong-import-order
 from conftest import DB_CONFIG, cleanup_table
+
 from wpostgresql import WPostgreSQL
 
 
@@ -53,7 +54,7 @@ class TestSQLTypeMapping:
     PostgreSQL data types in the database schema.
     """
 
-    def _get_table_columns(self, table_name: str) -> Dict[str, str]:
+    def _get_table_columns(self, table_name: str) -> dict[str, str]:
         """Helper to retrieve column types from the database.
 
         Args:

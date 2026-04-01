@@ -7,7 +7,8 @@ based on Pydantic model definitions.
 
 import os
 import sys
-from typing import Generator, List, Optional
+from collections.abc import Generator
+from typing import Optional
 
 import psycopg
 import pytest
@@ -18,6 +19,7 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=import-error, wrong-import-position, wrong-import-order
 from conftest import DB_CONFIG, cleanup_table
+
 from wpostgresql import WPostgreSQL
 
 
@@ -73,7 +75,7 @@ class TestPrimaryKey:
                     WHERE tc.table_name = 'restrictedmodel'
                       AND tc.constraint_type = 'PRIMARY KEY'
                 """)
-                pkeys: List[str] = [row[0] for row in cursor.fetchall()]
+                pkeys: list[str] = [row[0] for row in cursor.fetchall()]
                 assert "id" in pkeys
         finally:
             pg_conn.close()
@@ -114,7 +116,7 @@ class TestUniqueConstraint:
                     WHERE tc.table_name = 'uniquemodel'
                       AND tc.constraint_type = 'UNIQUE'
                 """)
-                unique_cols: List[str] = [row[0] for row in cursor.fetchall()]
+                unique_cols: list[str] = [row[0] for row in cursor.fetchall()]
                 assert "email" in unique_cols
         finally:
             pg_conn.close()
@@ -154,7 +156,7 @@ class TestNotNullConstraint:
                       AND is_nullable = 'NO'
                       AND column_name != 'id'
                 """)
-                not_null_cols: List[str] = [row[0] for row in cursor.fetchall()]
+                not_null_cols: list[str] = [row[0] for row in cursor.fetchall()]
                 assert "name" in not_null_cols
         finally:
             pg_conn.close()
