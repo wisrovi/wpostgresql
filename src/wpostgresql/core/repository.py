@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Any, Callable, List, Optional, Tuple, Type
+from typing import Any, Callable, Optional
 
 from pydantic import BaseModel
 
@@ -54,7 +54,7 @@ class WPostgreSQL:
 
     def __init__(
         self,
-        model: Type[BaseModel],
+        model: type[BaseModel],
         db_config: dict,
         pool_config: Optional[dict] = None,
     ):
@@ -96,7 +96,7 @@ class WPostgreSQL:
                 cursor.execute(query, values)
             conn.commit()
 
-    def get_all(self) -> List[BaseModel]:
+    def get_all(self) -> list[BaseModel]:
         """Get all records from the table.
 
         Returns:
@@ -117,7 +117,7 @@ class WPostgreSQL:
             for row in rows
         ]
 
-    def get_by_field(self, **filters) -> List[BaseModel]:
+    def get_by_field(self, **filters) -> list[BaseModel]:
         """Get records filtered by specified fields.
 
         Args:
@@ -155,7 +155,7 @@ class WPostgreSQL:
             data: Pydantic model instance containing the new data.
         """
         data_dict = data.model_dump()
-        fields = ", ".join(f"{key} = %s" for key in data_dict.keys())
+        fields = ", ".join(f"{key} = %s" for key in data_dict)
         values = tuple(data_dict.values()) + (record_id,)
         query = f"UPDATE {self.table_name} SET {fields} WHERE id = %s"
 
@@ -200,7 +200,7 @@ class WPostgreSQL:
         offset: int = 0,
         order_by: Optional[str] = None,
         order_desc: bool = False,
-    ) -> List[BaseModel]:
+    ) -> list[BaseModel]:
         """Get records with pagination and optional ordering.
 
         Args:
@@ -235,7 +235,7 @@ class WPostgreSQL:
             for row in rows
         ]
 
-    def get_page(self, page: int = 1, per_page: int = 10) -> List[BaseModel]:
+    def get_page(self, page: int = 1, per_page: int = 10) -> list[BaseModel]:
         """Get records by page number.
 
         Args:
@@ -263,7 +263,7 @@ class WPostgreSQL:
             result = cursor.fetchone()
         return result[0] if result else 0
 
-    def insert_many(self, data_list: List[BaseModel]) -> None:
+    def insert_many(self, data_list: list[BaseModel]) -> None:
         """Insert multiple records in a single transaction.
 
         Args:
@@ -285,7 +285,7 @@ class WPostgreSQL:
                     cursor.execute(query, values)
             conn.commit()
 
-    def update_many(self, updates: List[Tuple[BaseModel, int]]) -> int:
+    def update_many(self, updates: list[tuple[BaseModel, int]]) -> int:
         """Update multiple records efficiently.
 
         Args:
@@ -313,7 +313,7 @@ class WPostgreSQL:
 
         return total_updated
 
-    def delete_many(self, record_ids: List[int]) -> int:
+    def delete_many(self, record_ids: list[int]) -> int:
         """Delete multiple records by their IDs.
 
         Args:
@@ -336,7 +336,7 @@ class WPostgreSQL:
 
         return len(record_ids)
 
-    def execute_transaction(self, operations: List[Tuple[str, tuple]]) -> List[Any]:
+    def execute_transaction(self, operations: list[tuple[str, tuple]]) -> list[Any]:
         """Execute multiple SQL operations in a single transaction.
 
         Args:
@@ -402,7 +402,7 @@ class WPostgreSQL:
                 await cursor.execute(query, values)
             await conn.commit()
 
-    async def get_all_async(self) -> List[BaseModel]:
+    async def get_all_async(self) -> list[BaseModel]:
         """Asynchronously retrieve all records from the table.
 
         Returns:
@@ -410,10 +410,9 @@ class WPostgreSQL:
         """
         query = f"SELECT * FROM {self.table_name}"
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query)
-                rows = await cursor.fetchall()
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query)
+            rows = await cursor.fetchall()
 
         return [
             self.model(
@@ -425,7 +424,7 @@ class WPostgreSQL:
             for row in rows
         ]
 
-    async def get_by_field_async(self, **filters) -> List[BaseModel]:
+    async def get_by_field_async(self, **filters) -> list[BaseModel]:
         """Asynchronously get records filtered by specified fields.
 
         Args:
@@ -442,10 +441,9 @@ class WPostgreSQL:
         query = f"SELECT * FROM {self.table_name} WHERE {conditions}"
 
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query, values)
-                rows = await cursor.fetchall()
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query, values)
+            rows = await cursor.fetchall()
 
         return [
             self.model(
@@ -494,7 +492,7 @@ class WPostgreSQL:
         offset: int = 0,
         order_by: Optional[str] = None,
         order_desc: bool = False,
-    ) -> List[BaseModel]:
+    ) -> list[BaseModel]:
         """Asynchronously get records with pagination and sorting.
 
         Args:
@@ -516,10 +514,9 @@ class WPostgreSQL:
         query = f"SELECT * FROM {self.table_name}{order_clause} LIMIT %s OFFSET %s"
 
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query, (limit, offset))
-                rows = await cursor.fetchall()
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query, (limit, offset))
+            rows = await cursor.fetchall()
 
         return [
             self.model(
@@ -531,7 +528,7 @@ class WPostgreSQL:
             for row in rows
         ]
 
-    async def get_page_async(self, page: int = 1, per_page: int = 10) -> List[BaseModel]:
+    async def get_page_async(self, page: int = 1, per_page: int = 10) -> list[BaseModel]:
         """Asynchronously get records by page number.
 
         Args:
@@ -555,13 +552,12 @@ class WPostgreSQL:
         validate_identifier(self.table_name)
         query = f"SELECT COUNT(*) FROM {self.table_name}"
         conn = await get_async_connection(self.db_config)
-        async with conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(query)
-                result = await cursor.fetchone()
+        async with conn, conn.cursor() as cursor:
+            await cursor.execute(query)
+            result = await cursor.fetchone()
         return result[0] if result else 0
 
-    async def insert_many_async(self, data_list: List[BaseModel]) -> None:
+    async def insert_many_async(self, data_list: list[BaseModel]) -> None:
         """Asynchronously insert multiple records in one transaction.
 
         Args:
@@ -584,7 +580,7 @@ class WPostgreSQL:
                     await cursor.execute(query, values)
             await conn.commit()
 
-    async def update_many_async(self, updates: List[Tuple[BaseModel, int]]) -> int:
+    async def update_many_async(self, updates: list[tuple[BaseModel, int]]) -> int:
         """Asynchronously update multiple records.
 
         Args:
@@ -613,7 +609,7 @@ class WPostgreSQL:
 
         return total_updated
 
-    async def delete_many_async(self, record_ids: List[int]) -> int:
+    async def delete_many_async(self, record_ids: list[int]) -> int:
         """Asynchronously delete multiple records by ID.
 
         Args:
@@ -637,7 +633,7 @@ class WPostgreSQL:
 
         return len(record_ids)
 
-    async def execute_transaction_async(self, operations: List[Tuple[str, tuple]]) -> List[Any]:
+    async def execute_transaction_async(self, operations: list[tuple[str, tuple]]) -> list[Any]:
         """Asynchronously execute multiple SQL operations in one transaction.
 
         Args:
