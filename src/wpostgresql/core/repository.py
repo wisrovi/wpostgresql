@@ -2,7 +2,8 @@
 
 import logging
 import re
-from typing import Any, Callable, Optional
+from pathlib import Path
+from typing import Any, Callable, Optional, Union
 
 from pydantic import BaseModel
 
@@ -85,7 +86,7 @@ class WPostgreSQL:
         Args:
             data: Pydantic model instance containing the data to insert.
         """
-        data_dict = data.model_dump()
+        data_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         fields = ", ".join(data_dict.keys())
         placeholders = ", ".join(["%s"] * len(data_dict))
         values = tuple(data_dict.values())
@@ -680,3 +681,28 @@ class WPostgreSQL:
         except Exception as e:
             logger.error("Async transaction failed: %s", e)
             raise TransactionError(f"Async transaction failed: {e}") from e
+
+    def backup_to_sqlite(self, sqlite_path: Union[str, Path]) -> int:
+        """Backup table records to an SQLite database using wsqlite.
+
+        Args:
+            sqlite_path: Path to target SQLite database file.
+
+        Returns:
+            int: Number of records backed up.
+        """
+        from wpostgresql.core.backup import backup_to_sqlite as _backup_to_sqlite
+        return _backup_to_sqlite(self, sqlite_path)
+
+    async def backup_to_sqlite_async(self, sqlite_path: Union[str, Path]) -> int:
+        """Asynchronously backup table records to an SQLite database using wsqlite.
+
+        Args:
+            sqlite_path: Path to target SQLite database file.
+
+        Returns:
+            int: Number of records backed up.
+        """
+        from wpostgresql.core.backup import backup_to_sqlite_async as _backup_to_sqlite_async
+        return await _backup_to_sqlite_async(self, sqlite_path)
+
