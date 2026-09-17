@@ -281,6 +281,19 @@ async def main():
 asyncio.run(main())
 ```
 
+### SQLite Backup
+
+```python
+# Backup PostgreSQL table data to SQLite file (atomic replace by default)
+db.backup_to_sqlite("backup.db")
+
+# Backup and update in-place without replacing destination file handle
+db.backup_to_sqlite("backup.db", update=True)
+
+# Async SQLite backup
+await db.backup_to_sqlite_async("backup_async.db")
+```
+
 ### CLI Commands
 
 ```bash
