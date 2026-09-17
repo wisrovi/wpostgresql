@@ -682,27 +682,36 @@ class WPostgreSQL:
             logger.error("Async transaction failed: %s", e)
             raise TransactionError(f"Async transaction failed: {e}") from e
 
-    def backup_to_sqlite(self, sqlite_path: Union[str, Path]) -> int:
+    def backup_to_sqlite(self, sqlite_path: Union[str, Path], update: bool = False) -> int:
         """Backup table records to an SQLite database using wsqlite.
 
         Args:
             sqlite_path: Path to target SQLite database file.
+            update: If True, updates existing SQLite database table in place without replacing file.
+                    If False (default), creates a temporary backup file and atomically replaces destination file.
 
         Returns:
             int: Number of records backed up.
         """
         from wpostgresql.core.backup import backup_to_sqlite as _backup_to_sqlite
-        return _backup_to_sqlite(self, sqlite_path)
 
-    async def backup_to_sqlite_async(self, sqlite_path: Union[str, Path]) -> int:
+        return _backup_to_sqlite(self, sqlite_path, update=update)
+
+    async def backup_to_sqlite_async(
+        self, sqlite_path: Union[str, Path], update: bool = False
+    ) -> int:
         """Asynchronously backup table records to an SQLite database using wsqlite.
 
         Args:
             sqlite_path: Path to target SQLite database file.
+            update: If True, updates existing SQLite database table in place without replacing file.
+                    If False (default), creates a temporary backup file and atomically replaces destination file.
 
         Returns:
             int: Number of records backed up.
         """
-        from wpostgresql.core.backup import backup_to_sqlite_async as _backup_to_sqlite_async
-        return await _backup_to_sqlite_async(self, sqlite_path)
+        from wpostgresql.core.backup import (
+            backup_to_sqlite_async as _backup_to_sqlite_async,
+        )
 
+        return await _backup_to_sqlite_async(self, sqlite_path, update=update)
