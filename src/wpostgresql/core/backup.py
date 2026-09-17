@@ -32,7 +32,8 @@ def backup_to_sqlite(
         sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path))
         # Clear existing table data to synchronize fresh state without losing file handle
         table_name = repo.model.__name__.lower()
-        with sqlite_db._get_connection() as conn:
+        import sqlite3
+        with sqlite3.connect(str(dest_path)) as conn:
             conn.execute(f"DELETE FROM {table_name}")
             conn.commit()
         sqlite_db.insert_many(records)
@@ -81,7 +82,8 @@ async def backup_to_sqlite_async(
     if update:
         sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path))
         table_name = repo.model.__name__.lower()
-        with sqlite_db._get_connection() as conn:
+        import sqlite3
+        with sqlite3.connect(str(dest_path)) as conn:
             conn.execute(f"DELETE FROM {table_name}")
             conn.commit()
         sqlite_db.insert_many(records)
