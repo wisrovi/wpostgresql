@@ -43,6 +43,7 @@
 - **CLI Tool** — Command-line interface for database management
 - **Code Quality** — Pylint score > 9.5, Bandit security checks passing, mypy type checking
 - **Pagination** — LIMIT/OFFSET and page-number based pagination
+- **SQLite Backup** — Export PostgreSQL table data directly to SQLite database files using `wsqlite`
 
 ## Technical Stack
 
@@ -51,6 +52,7 @@
 | Language | Python 3.9+ |
 | Database | PostgreSQL 13+ |
 | ORM Core | psycopg 3.x, psycopg_pool |
+| SQLite Backup | wsqlite |
 | Validation | Pydantic 2.x |
 | Logging | Loguru |
 | CLI | Click |
