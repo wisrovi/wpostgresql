@@ -30,9 +30,9 @@ def test_backup_to_sqlite_sync(tmp_path, sample_records):
     """Test backing up PostgreSQL data to SQLite via wsqlite synchronously.
 
     This test verifies that:
-    1. TableSync creates/syncs table structure in WSQLite.
-    2. All records retrieved from PostgreSQL are inserted into WSQLite.
-    3. The exact count of backed up records is returned.
+    1. All records retrieved from PostgreSQL are inserted into WSQLite.
+    2. The exact count of backed up records is returned.
+    3. Works with both atomic file replacement (update=False) and update mode (update=True).
     """
     db_path = str(tmp_path / "backup_test.db")
 
@@ -44,10 +44,21 @@ def test_backup_to_sqlite_sync(tmp_path, sample_records):
         mock_wsqlite_instance = MagicMock()
         mock_wsqlite_cls.return_value = mock_wsqlite_instance
 
+        # Test default atomic replace
         count = backup_to_sqlite(mock_repo, db_path)
-
         assert count == 2
+        mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
+
+        # Test update mode
+        mock_wsqlite_cls.reset_mock()
+        mock_wsqlite_instance.reset_mock()
+        mock_conn = MagicMock()
+        mock_wsqlite_instance._get_connection.return_value.__enter__.return_value = mock_conn
+
+        count_update = backup_to_sqlite(mock_repo, db_path, update=True)
+        assert count_update == 2
         mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
+        mock_conn.execute.assert_called_once_with("DELETE FROM samplemodel")
         mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
 
 
@@ -57,7 +68,8 @@ async def test_backup_to_sqlite_async(tmp_path, sample_records):
 
     This test verifies that:
     1. get_all_async fetches the records.
-    2. Records are inserted into WSQLite asynchronously using insert_many_async or insert_many.
+    2. Records are inserted into WSQLite.
+    3. Works with both atomic file replacement and update mode.
     """
     db_path = str(tmp_path / "backup_test_async.db")
 
@@ -73,8 +85,19 @@ async def test_backup_to_sqlite_async(tmp_path, sample_records):
         mock_wsqlite_instance = MagicMock()
         mock_wsqlite_cls.return_value = mock_wsqlite_instance
 
+        # Test default atomic replace
         count = await backup_to_sqlite_async(mock_repo, db_path)
-
         assert count == 2
+        mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
+
+        # Test update mode
+        mock_wsqlite_cls.reset_mock()
+        mock_wsqlite_instance.reset_mock()
+        mock_conn = MagicMock()
+        mock_wsqlite_instance._get_connection.return_value.__enter__.return_value = mock_conn
+
+        count_update = await backup_to_sqlite_async(mock_repo, db_path, update=True)
+        assert count_update == 2
         mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
+        mock_conn.execute.assert_called_once_with("DELETE FROM samplemodel")
         mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
