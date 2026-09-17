@@ -100,6 +100,31 @@ Delete a record by ID.
 db.delete(1)
 ```
 
+#### backup_to_sqlite
+
+```python
+db.backup_to_sqlite(sqlite_path: str | Path) -> int
+```
+
+Export/backup all records from the PostgreSQL table into an SQLite database file using `wsqlite`.
+
+```python
+backed_up_count = db.backup_to_sqlite("backup.db")
+```
+
+#### backup_to_sqlite_async
+
+```python
+await db.backup_to_sqlite_async(sqlite_path: str | Path) -> int
+```
+
+Asynchronously export/backup table records to an SQLite database file using `wsqlite`.
+
+```python
+backed_up_count = await db.backup_to_sqlite_async("backup.db")
+```
+
+
 #### get_paginated
 
 ```python

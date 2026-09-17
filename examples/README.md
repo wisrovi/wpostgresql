@@ -25,7 +25,8 @@ examples/
 ├── 11_timestamps/        # Timestamps
 ├── 12_raw_sql/           # Raw SQL
 ├── 13_soft_delete/       # Soft delete
-└── 14_relationships/    # Table relationships
+├── 14_relationships/    # Table relationships
+└── 15_backups/          # SQLite backup via wsqlite
 ```
 
 ---
