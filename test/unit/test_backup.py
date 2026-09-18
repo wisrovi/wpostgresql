@@ -101,3 +101,41 @@ async def test_backup_to_sqlite_async(tmp_path, sample_records):
         mock_wsqlite_instance.get_all.assert_called_once()
         mock_wsqlite_instance.delete_many.assert_called_once_with([1, 2])
         mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
+
+
+def test_backup_db_to_sqlite(tmp_path, sample_records):
+    """Test backing up multiple models into a single SQLite database."""
+    from wpostgresql.core.backup import backup_db_to_sqlite
+
+    db_path = tmp_path / "full_db_backup.db"
+
+    with patch("wpostgresql.core.repository.WPostgreSQL") as mock_wpost_cls:
+        mock_repo = MagicMock()
+        mock_repo.backup_to_sqlite.return_value = 2
+        mock_wpost_cls.return_value = mock_repo
+
+        results = backup_db_to_sqlite([SampleModel], {}, db_path)
+
+        assert results == {"samplemodel": 2}
+        mock_repo.backup_to_sqlite.assert_called_once_with(db_path, update=True)
+
+
+def test_export_to_sql_script(tmp_path, sample_records):
+    """Test exporting models to a .sql reconstruction script."""
+    from wpostgresql.core.backup import export_to_sql_script
+
+    sql_path = tmp_path / "schema.sql"
+
+    with patch("wpostgresql.core.repository.WPostgreSQL") as mock_wpost_cls:
+        mock_repo = MagicMock()
+        mock_repo.table_name = "samplemodel"
+        mock_repo.get_all.return_value = sample_records
+        mock_wpost_cls.return_value = mock_repo
+
+        script_path = export_to_sql_script([SampleModel], {}, sql_path)
+
+        assert Path(script_path).exists()
+        content = Path(script_path).read_text()
+        assert "CREATE TABLE IF NOT EXISTS samplemodel" in content
+        assert "INSERT INTO samplemodel" in content
+        assert "'Alice'" in content
