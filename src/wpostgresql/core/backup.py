@@ -30,12 +30,20 @@ def backup_to_sqlite(
 
     if update:
         sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path))
-        # Clear existing table data to synchronize fresh state without losing file handle
-        table_name = repo.model.__name__.lower()
-        import sqlite3
-        with sqlite3.connect(str(dest_path)) as conn:
-            conn.execute(f"DELETE FROM {table_name}")
-            conn.commit()
+        # Clear existing records using wsqlite methods without introducing raw sqlite3 dependency
+        existing_records = sqlite_db.get_all()
+        if existing_records:
+            existing_ids = [
+                getattr(rec, "id")
+                for rec in existing_records
+                if hasattr(rec, "id") and getattr(rec, "id") is not None
+            ]
+            if existing_ids:
+                sqlite_db.delete_many(existing_ids)
+            else:
+                for rec in existing_records:
+                    if hasattr(rec, "id") and getattr(rec, "id") is not None:
+                        sqlite_db.delete(getattr(rec, "id"))
         sqlite_db.insert_many(records)
         return len(records)
 
@@ -81,11 +89,19 @@ async def backup_to_sqlite_async(
 
     if update:
         sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path))
-        table_name = repo.model.__name__.lower()
-        import sqlite3
-        with sqlite3.connect(str(dest_path)) as conn:
-            conn.execute(f"DELETE FROM {table_name}")
-            conn.commit()
+        existing_records = sqlite_db.get_all()
+        if existing_records:
+            existing_ids = [
+                getattr(rec, "id")
+                for rec in existing_records
+                if hasattr(rec, "id") and getattr(rec, "id") is not None
+            ]
+            if existing_ids:
+                sqlite_db.delete_many(existing_ids)
+            else:
+                for rec in existing_records:
+                    if hasattr(rec, "id") and getattr(rec, "id") is not None:
+                        sqlite_db.delete(getattr(rec, "id"))
         sqlite_db.insert_many(records)
         return len(records)
 
