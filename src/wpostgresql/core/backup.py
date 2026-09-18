@@ -127,3 +127,185 @@ async def backup_to_sqlite_async(
 
     return len(records)
 
+
+def backup_db_to_sqlite(
+    models: list[type],
+    db_config: dict,
+    sqlite_path: Union[str, Path],
+    update: bool = True,
+) -> dict[str, int]:
+    """Backup multiple Pydantic models (entire database tables) into a single SQLite database.
+
+    Args:
+        models: List of Pydantic BaseModel classes representing database tables.
+        db_config: PostgreSQL database configuration dictionary.
+        sqlite_path: Destination SQLite database file path.
+        update: If True (default for multi-table backup), updates/synchronizes each table in-place.
+
+    Returns:
+        dict[str, int]: Dictionary mapping table/model name to backed up record count.
+    """
+    from wpostgresql.core.repository import WPostgreSQL
+
+    dest_path = Path(sqlite_path)
+    results = {}
+
+    for model in models:
+        repo = WPostgreSQL(model, db_config)
+        table_name = getattr(model, "__tablename__", model.__name__.lower())
+        results[table_name] = repo.backup_to_sqlite(dest_path, update=update)
+
+    return results
+
+
+async def backup_db_to_sqlite_async(
+    models: list[type],
+    db_config: dict,
+    sqlite_path: Union[str, Path],
+    update: bool = True,
+) -> dict[str, int]:
+    """Asynchronously backup multiple Pydantic models into a single SQLite database.
+
+    Args:
+        models: List of Pydantic BaseModel classes representing database tables.
+        db_config: PostgreSQL database configuration dictionary.
+        sqlite_path: Destination SQLite database file path.
+        update: If True (default), updates/synchronizes each table in-place.
+
+    Returns:
+        dict[str, int]: Dictionary mapping table/model name to backed up record count.
+    """
+    from wpostgresql.core.repository import WPostgreSQL
+
+    dest_path = Path(sqlite_path)
+    results = {}
+
+    for model in models:
+        repo = WPostgreSQL(model, db_config)
+        table_name = getattr(model, "__tablename__", model.__name__.lower())
+        results[table_name] = await repo.backup_to_sqlite_async(dest_path, update=update)
+
+    return results
+
+
+def export_to_sql_script(
+    models: list[type],
+    db_config: dict,
+    sql_script_path: Union[str, Path],
+) -> str:
+    """Generate a clean SQL reconstruction script (.sql) with DDL (CREATE TABLE) and DML (INSERT).
+
+    Args:
+        models: List of Pydantic BaseModel classes representing database tables.
+        db_config: PostgreSQL database configuration dictionary.
+        sql_script_path: Destination .sql file path.
+
+    Returns:
+        str: Absolute path of the created SQL script.
+    """
+    from wpostgresql.core.repository import WPostgreSQL
+    from wpostgresql.types.sql_types import get_sql_type
+
+    script_path = Path(sql_script_path)
+    lines = ["-- WPostgreSQL Database Reconstruction Script", "-- Generated automatically\n"]
+
+    for model in models:
+        repo = WPostgreSQL(model, db_config)
+        table_name = repo.table_name
+
+        # Build CREATE TABLE DDL statement
+        field_defs = [
+            f"{field} {get_sql_type(typ)}" for field, typ in model.model_fields.items()
+        ]
+        ddl = f"CREATE TABLE IF NOT EXISTS {table_name} (\n  " + ",\n  ".join(field_defs) + "\n);"
+        lines.append(f"-- Table schema for {table_name}")
+        lines.append(ddl)
+        lines.append("")
+
+        # Build INSERT DML statements
+        records = repo.get_all()
+        if records:
+            lines.append(f"-- Data dump for {table_name}")
+            for rec in records:
+                rec_dict = {k: v for k, v in rec.model_dump().items() if v is not None}
+                if not rec_dict:
+                    continue
+                columns = ", ".join(rec_dict.keys())
+                val_parts = []
+                for v in rec_dict.values():
+                    if isinstance(v, (str, bytes)):
+                        escaped = str(v).replace("'", "''")
+                        val_parts.append(f"'{escaped}'")
+                    elif v is None:
+                        val_parts.append("NULL")
+                    elif isinstance(v, bool):
+                        val_parts.append("TRUE" if v else "FALSE")
+                    else:
+                        val_parts.append(str(v))
+                values_str = ", ".join(val_parts)
+                lines.append(f"INSERT INTO {table_name} ({columns}) VALUES ({values_str});")
+            lines.append("")
+
+    script_path.write_text("\n".join(lines), encoding="utf-8")
+    return str(script_path.resolve())
+
+
+async def export_to_sql_script_async(
+    models: list[type],
+    db_config: dict,
+    sql_script_path: Union[str, Path],
+) -> str:
+    """Asynchronously generate a clean SQL reconstruction script (.sql) with DDL and DML.
+
+    Args:
+        models: List of Pydantic BaseModel classes representing database tables.
+        db_config: PostgreSQL database configuration dictionary.
+        sql_script_path: Destination .sql file path.
+
+    Returns:
+        str: Absolute path of the created SQL script.
+    """
+    from wpostgresql.core.repository import WPostgreSQL
+    from wpostgresql.types.sql_types import get_sql_type
+
+    script_path = Path(sql_script_path)
+    lines = ["-- WPostgreSQL Database Reconstruction Script", "-- Generated automatically\n"]
+
+    for model in models:
+        repo = WPostgreSQL(model, db_config)
+        table_name = repo.table_name
+
+        field_defs = [
+            f"{field} {get_sql_type(typ)}" for field, typ in model.model_fields.items()
+        ]
+        ddl = f"CREATE TABLE IF NOT EXISTS {table_name} (\n  " + ",\n  ".join(field_defs) + "\n);"
+        lines.append(f"-- Table schema for {table_name}")
+        lines.append(ddl)
+        lines.append("")
+
+        records = await repo.get_all_async()
+        if records:
+            lines.append(f"-- Data dump for {table_name}")
+            for rec in records:
+                rec_dict = {k: v for k, v in rec.model_dump().items() if v is not None}
+                if not rec_dict:
+                    continue
+                columns = ", ".join(rec_dict.keys())
+                val_parts = []
+                for v in rec_dict.values():
+                    if isinstance(v, (str, bytes)):
+                        escaped = str(v).replace("'", "''")
+                        val_parts.append(f"'{escaped}'")
+                    elif v is None:
+                        val_parts.append("NULL")
+                    elif isinstance(v, bool):
+                        val_parts.append("TRUE" if v else "FALSE")
+                    else:
+                        val_parts.append(str(v))
+                values_str = ", ".join(val_parts)
+                lines.append(f"INSERT INTO {table_name} ({columns}) VALUES ({values_str});")
+            lines.append("")
+
+    script_path.write_text("\n".join(lines), encoding="utf-8")
+    return str(script_path.resolve())
+
