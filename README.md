@@ -283,15 +283,20 @@ asyncio.run(main())
 
 ### SQLite Backup
 
+Export PostgreSQL table data directly into an SQLite database file using `wsqlite`:
+
 ```python
-# Backup PostgreSQL table data to SQLite file (atomic replace by default)
+# 1. Synchronous Backup - Atomic replace by default (writes to .tmp and safely replaces file)
 db.backup_to_sqlite("backup.db")
 
-# Backup and update in-place without replacing destination file handle
+# 2. Synchronous Backup - In-place update (clears and updates table without replacing file descriptor)
 db.backup_to_sqlite("backup.db", update=True)
 
-# Async SQLite backup
+# 3. Asynchronous Backup - Atomic replace by default
 await db.backup_to_sqlite_async("backup_async.db")
+
+# 4. Asynchronous Backup - In-place update
+await db.backup_to_sqlite_async("backup_async.db", update=True)
 ```
 
 ### CLI Commands
