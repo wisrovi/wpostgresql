@@ -54,8 +54,10 @@ def backup_to_sqlite(
     temp_path = Path(temp_file)
 
     try:
-        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path))
+        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path), use_pool=False)
         sqlite_db.insert_many(records)
+        if hasattr(wsqlite, "close_pool"):
+            wsqlite.close_pool()
         shutil.move(str(temp_path), str(dest_path))
     finally:
         if temp_path.exists():
@@ -111,8 +113,10 @@ async def backup_to_sqlite_async(
     temp_path = Path(temp_file)
 
     try:
-        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path))
+        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path), use_pool=False)
         sqlite_db.insert_many(records)
+        if hasattr(wsqlite, "close_pool"):
+            wsqlite.close_pool()
         shutil.move(str(temp_path), str(dest_path))
     finally:
         if temp_path.exists():
