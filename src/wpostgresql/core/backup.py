@@ -24,9 +24,12 @@ def backup_to_sqlite(
     """
     records = repo.get_all()
     dest_path = Path(sqlite_path)
+    table_name = getattr(repo, "table_name", getattr(repo.model, "__tablename__", repo.model.__name__.lower()))
 
     if update:
-        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path))
+        sqlite_db = wsqlite.WSQLite(
+            model=repo.model, db_path=str(dest_path), table_name=table_name
+        )
         existing_records = sqlite_db.get_all()
         if existing_records:
             existing_ids = [
@@ -51,7 +54,9 @@ def backup_to_sqlite(
     temp_path = Path(temp_file)
 
     try:
-        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path), use_pool=False)
+        sqlite_db = wsqlite.WSQLite(
+            model=repo.model, db_path=str(temp_path), table_name=table_name, use_pool=False
+        )
         if records:
             sqlite_db.insert_many(records)
         if hasattr(wsqlite, "close_pool"):
@@ -83,9 +88,12 @@ async def backup_to_sqlite_async(
     """
     records = await repo.get_all_async()
     dest_path = Path(sqlite_path)
+    table_name = getattr(repo, "table_name", getattr(repo.model, "__tablename__", repo.model.__name__.lower()))
 
     if update:
-        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path))
+        sqlite_db = wsqlite.WSQLite(
+            model=repo.model, db_path=str(dest_path), table_name=table_name
+        )
         existing_records = sqlite_db.get_all()
         if existing_records:
             existing_ids = [
@@ -109,7 +117,9 @@ async def backup_to_sqlite_async(
     temp_path = Path(temp_file)
 
     try:
-        sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path), use_pool=False)
+        sqlite_db = wsqlite.WSQLite(
+            model=repo.model, db_path=str(temp_path), table_name=table_name, use_pool=False
+        )
         if records:
             sqlite_db.insert_many(records)
         if hasattr(wsqlite, "close_pool"):
