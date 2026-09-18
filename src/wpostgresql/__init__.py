@@ -21,7 +21,14 @@ Async usage:
 """
 
 from wpostgresql.builders import QueryBuilder
-from wpostgresql.core.backup import backup_to_sqlite, backup_to_sqlite_async
+from wpostgresql.core.backup import (
+    backup_db_to_sqlite,
+    backup_db_to_sqlite_async,
+    backup_to_sqlite,
+    backup_to_sqlite_async,
+    export_to_sql_script,
+    export_to_sql_script_async,
+)
 from wpostgresql.core.connection import (
     DEFAULT_POOL_CONFIG,
     AsyncConnectionManager,
@@ -47,12 +54,16 @@ from wpostgresql.exceptions import (
     WPostgreSQLError,
 )
 
-__version__ = "1.1.4"
+__version__ = "1.2.0"
 
 __all__ = [
     "WPostgreSQL",
     "backup_to_sqlite",
     "backup_to_sqlite_async",
+    "backup_db_to_sqlite",
+    "backup_db_to_sqlite_async",
+    "export_to_sql_script",
+    "export_to_sql_script_async",
     "QueryBuilder",
     "ConnectionManager",
     "AsyncConnectionManager",
