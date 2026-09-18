@@ -23,14 +23,10 @@ def backup_to_sqlite(
         int: Number of records backed up.
     """
     records = repo.get_all()
-    if not records:
-        return 0
-
     dest_path = Path(sqlite_path)
 
     if update:
         sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path))
-        # Clear existing records using wsqlite methods without introducing raw sqlite3 dependency
         existing_records = sqlite_db.get_all()
         if existing_records:
             existing_ids = [
@@ -44,8 +40,9 @@ def backup_to_sqlite(
                 for rec in existing_records:
                     if hasattr(rec, "id") and getattr(rec, "id") is not None:
                         sqlite_db.delete(getattr(rec, "id"))
-        sqlite_db.insert_many(records)
-        return len(records)
+        if records:
+            sqlite_db.insert_many(records)
+        return len(records) if records else 0
 
     # Atomic replace via temporary file
     temp_dir = dest_path.parent if dest_path.parent.exists() else Path(".")
@@ -55,7 +52,8 @@ def backup_to_sqlite(
 
     try:
         sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path), use_pool=False)
-        sqlite_db.insert_many(records)
+        if records:
+            sqlite_db.insert_many(records)
         if hasattr(wsqlite, "close_pool"):
             wsqlite.close_pool()
         shutil.move(str(temp_path), str(dest_path))
@@ -66,7 +64,7 @@ def backup_to_sqlite(
             except OSError:
                 pass
 
-    return len(records)
+    return len(records) if records else 0
 
 
 async def backup_to_sqlite_async(
@@ -84,9 +82,6 @@ async def backup_to_sqlite_async(
         int: Number of records backed up.
     """
     records = await repo.get_all_async()
-    if not records:
-        return 0
-
     dest_path = Path(sqlite_path)
 
     if update:
@@ -104,8 +99,9 @@ async def backup_to_sqlite_async(
                 for rec in existing_records:
                     if hasattr(rec, "id") and getattr(rec, "id") is not None:
                         sqlite_db.delete(getattr(rec, "id"))
-        sqlite_db.insert_many(records)
-        return len(records)
+        if records:
+            sqlite_db.insert_many(records)
+        return len(records) if records else 0
 
     temp_dir = dest_path.parent if dest_path.parent.exists() else Path(".")
     temp_fd, temp_file = tempfile.mkstemp(dir=temp_dir, suffix=".db.tmp")
@@ -114,7 +110,8 @@ async def backup_to_sqlite_async(
 
     try:
         sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(temp_path), use_pool=False)
-        sqlite_db.insert_many(records)
+        if records:
+            sqlite_db.insert_many(records)
         if hasattr(wsqlite, "close_pool"):
             wsqlite.close_pool()
         shutil.move(str(temp_path), str(dest_path))
@@ -125,7 +122,7 @@ async def backup_to_sqlite_async(
             except OSError:
                 pass
 
-    return len(records)
+    return len(records) if records else 0
 
 
 def backup_db_to_sqlite(
