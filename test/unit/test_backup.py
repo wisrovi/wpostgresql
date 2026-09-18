@@ -56,7 +56,7 @@ def test_backup_to_sqlite_sync(tmp_path, sample_records):
 
         count_update = backup_to_sqlite(mock_repo, db_path, update=True)
         assert count_update == 2
-        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
+        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path, table_name="samplemodel")
         mock_wsqlite_instance.get_all.assert_called_once()
         mock_wsqlite_instance.delete_many.assert_called_once_with([1, 2])
         mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
@@ -79,6 +79,7 @@ async def test_backup_to_sqlite_async(tmp_path, sample_records):
     async def mock_get_all_async():
         return sample_records
 
+    mock_repo.table_name = "samplemodel"
     mock_repo.get_all_async = mock_get_all_async
 
     with patch("wsqlite.WSQLite") as mock_wsqlite_cls:
@@ -97,7 +98,7 @@ async def test_backup_to_sqlite_async(tmp_path, sample_records):
 
         count_update = await backup_to_sqlite_async(mock_repo, db_path, update=True)
         assert count_update == 2
-        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
+        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path, table_name="samplemodel")
         mock_wsqlite_instance.get_all.assert_called_once()
         mock_wsqlite_instance.delete_many.assert_called_once_with([1, 2])
         mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
@@ -156,5 +157,7 @@ def test_backup_to_sqlite_empty_table(tmp_path):
         count = backup_to_sqlite(mock_repo, db_path)
 
         assert count == 0
-        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=ANY, use_pool=False)
+        mock_wsqlite_cls.assert_called_once_with(
+            model=SampleModel, db_path=ANY, table_name="samplemodel", use_pool=False
+        )
         mock_wsqlite_instance.insert_many.assert_not_called()
