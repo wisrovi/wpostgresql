@@ -52,15 +52,14 @@ def test_backup_to_sqlite_sync(tmp_path, sample_records):
         # Test update mode
         mock_wsqlite_cls.reset_mock()
         mock_wsqlite_instance.reset_mock()
-        with patch("sqlite3.connect") as mock_sqlite_connect:
-            mock_conn = MagicMock()
-            mock_sqlite_connect.return_value.__enter__.return_value = mock_conn
+        mock_wsqlite_instance.get_all.return_value = sample_records
 
-            count_update = backup_to_sqlite(mock_repo, db_path, update=True)
-            assert count_update == 2
-            mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
-            mock_conn.execute.assert_called_once_with("DELETE FROM samplemodel")
-            mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
+        count_update = backup_to_sqlite(mock_repo, db_path, update=True)
+        assert count_update == 2
+        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
+        mock_wsqlite_instance.get_all.assert_called_once()
+        mock_wsqlite_instance.delete_many.assert_called_once_with([1, 2])
+        mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
 
 
 @pytest.mark.asyncio
@@ -94,12 +93,11 @@ async def test_backup_to_sqlite_async(tmp_path, sample_records):
         # Test update mode
         mock_wsqlite_cls.reset_mock()
         mock_wsqlite_instance.reset_mock()
-        with patch("sqlite3.connect") as mock_sqlite_connect:
-            mock_conn = MagicMock()
-            mock_sqlite_connect.return_value.__enter__.return_value = mock_conn
+        mock_wsqlite_instance.get_all.return_value = sample_records
 
-            count_update = await backup_to_sqlite_async(mock_repo, db_path, update=True)
-            assert count_update == 2
-            mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
-            mock_conn.execute.assert_called_once_with("DELETE FROM samplemodel")
-            mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
+        count_update = await backup_to_sqlite_async(mock_repo, db_path, update=True)
+        assert count_update == 2
+        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=db_path)
+        mock_wsqlite_instance.get_all.assert_called_once()
+        mock_wsqlite_instance.delete_many.assert_called_once_with([1, 2])
+        mock_wsqlite_instance.insert_many.assert_called_once_with(sample_records)
