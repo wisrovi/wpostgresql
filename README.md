@@ -286,17 +286,30 @@ asyncio.run(main())
 Export PostgreSQL table data directly into an SQLite database file using `wsqlite`:
 
 ```python
-# 1. Synchronous Backup - Atomic replace by default (writes to .tmp and safely replaces file)
+# 1. Single Table Backup (Atomic replace by default)
 db.backup_to_sqlite("backup.db")
 
-# 2. Synchronous Backup - In-place update (clears and updates table without replacing file descriptor)
+# 2. Single Table In-place Update
 db.backup_to_sqlite("backup.db", update=True)
 
-# 3. Asynchronous Backup - Atomic replace by default
-await db.backup_to_sqlite_async("backup_async.db")
+# 3. Full Database Backup (All Pydantic models/tables into one SQLite file)
+from wpostgresql import backup_db_to_sqlite, backup_db_to_sqlite_async
 
-# 4. Asynchronous Backup - In-place update
-await db.backup_to_sqlite_async("backup_async.db", update=True)
+models = [User, Product, Order]
+results = backup_db_to_sqlite(models, DB_CONFIG, "full_database.db")
+# Async: await backup_db_to_sqlite_async(models, DB_CONFIG, "full_database.db")
+```
+
+### SQL Reconstruction Dump Script
+
+Generate a standalone `.sql` script containing full DDL (`CREATE TABLE`) and DML (`INSERT INTO`) statements to reconstruct the entire database from scratch:
+
+```python
+from wpostgresql import export_to_sql_script, export_to_sql_script_async
+
+# Export full database schema and data to a .sql script
+sql_file = export_to_sql_script([User, Product, Order], DB_CONFIG, "reconstruct_db.sql")
+# Async: await export_to_sql_script_async([User, Product, Order], DB_CONFIG, "reconstruct_db.sql")
 ```
 
 ### CLI Commands
