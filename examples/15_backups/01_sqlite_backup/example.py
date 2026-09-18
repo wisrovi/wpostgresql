@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field
 from wpostgresql import WPostgreSQL
 
 db_config = {
-    "dbname": "wpostgresql",
-    "user": "postgres",
-    "password": "postgres",
-    "host": "localhost",
+    "dbname": "mcp",
+    "user": "myuser",
+    "password": "mypassword",
+    "host": "192.168.1.68",
     "port": 5432,
 }
 
@@ -28,10 +28,13 @@ def run_sync_backup():
     """Run synchronous backup examples."""
     db = WPostgreSQL(Product, db_config)
 
-    # Insert sample records into PostgreSQL
-    db.insert(Product(id=1, name="Laptop", price=999.99, stock=10))
-    db.insert(Product(id=2, name="Mouse", price=25.50, stock=50))
-    db.insert(Product(id=3, name="Keyboard", price=49.99, stock=30))
+    # Insert sample records into PostgreSQL (ignore if already inserted)
+    try:
+        db.insert(Product(id=1, name="Laptop", price=999.99, stock=10))
+        db.insert(Product(id=2, name="Mouse", price=25.50, stock=50))
+        db.insert(Product(id=3, name="Keyboard", price=49.99, stock=30))
+    except Exception:
+        pass
 
     # 1. Synchronous backup (Atomic replace by default)
     sqlite_file = Path("products_backup.db")
