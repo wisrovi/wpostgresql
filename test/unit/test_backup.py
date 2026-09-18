@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 import pytest
 from pydantic import BaseModel, Field
 
@@ -139,3 +139,22 @@ def test_export_to_sql_script(tmp_path, sample_records):
         assert "CREATE TABLE IF NOT EXISTS samplemodel" in content
         assert "INSERT INTO samplemodel" in content
         assert "'Alice'" in content
+
+
+def test_backup_to_sqlite_empty_table(tmp_path):
+    """Test backing up an empty table creates schema in SQLite."""
+    db_path = str(tmp_path / "empty_backup.db")
+
+    mock_repo = MagicMock(spec=WPostgreSQL)
+    mock_repo.model = SampleModel
+    mock_repo.get_all.return_value = []
+
+    with patch("wsqlite.WSQLite") as mock_wsqlite_cls:
+        mock_wsqlite_instance = MagicMock()
+        mock_wsqlite_cls.return_value = mock_wsqlite_instance
+
+        count = backup_to_sqlite(mock_repo, db_path)
+
+        assert count == 0
+        mock_wsqlite_cls.assert_called_once_with(model=SampleModel, db_path=ANY, use_pool=False)
+        mock_wsqlite_instance.insert_many.assert_not_called()
