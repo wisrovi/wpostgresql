@@ -10,4 +10,5 @@ Examples demonstrating backup and export features in WPostgreSQL.
 
 ## Subdirectories
 
-- **01_sqlite_backup**: Export PostgreSQL tables directly to SQLite database files using `wsqlite`.
+- **01_sqlite_backup**: Export a single PostgreSQL table directly to an SQLite database file using `wsqlite`.
+- **02_full_db_backup**: Export multiple PostgreSQL tables (entire database) to a single SQLite database file and generate standalone `.sql` reconstruction scripts.
