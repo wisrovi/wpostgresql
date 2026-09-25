@@ -312,6 +312,36 @@ sql_file = export_to_sql_script([User, Product, Order], DB_CONFIG, "reconstruct_
 # Async: await export_to_sql_script_async([User, Product, Order], DB_CONFIG, "reconstruct_db.sql")
 ```
 
+### Forensic Audit & Soft Delete
+
+Track user actions (`create_by`, `create_in`, `update_by`, `update_in`, `delete_by`, `delete_in`) and automatically soft-delete records (`status=99`):
+
+```python
+from wpostgresql import WPostgreSQL, ForensicModel
+
+# Inheriting from ForensicModel automatically enables forensic audit tracking
+class Document(ForensicModel):
+    id: int
+    title: str
+
+db = WPostgreSQL(Document, DB_CONFIG)
+
+# Insert with user ID tracking (defaults to 1 if omitted)
+db.insert(Document(id=1, title="Report"), user_id=42)
+
+# Update with user ID tracking
+db.update(1, Document(id=1, title="Report V2"), user_id=99)
+
+# Soft delete (sets status=99, delete_by=777, delete_in=UTC_NOW)
+db.delete(1, user_id=777)
+
+# Standard query automatically excludes soft-deleted records (WHERE status != 99)
+active_docs = db.get_all()  # []
+
+# Query including soft-deleted records
+all_docs = db.get_all(include_deleted=True)  # [Document(id=1, status=99, ...)]
+```
+
 ### CLI Commands
 
 ```bash
@@ -327,15 +357,17 @@ wpostgresql status
 
 ## Testing
 
+Unit tests can be executed locally or inside an isolated Docker container:
+
 ```bash
-# Run all tests
-pytest
+# Run tests inside an isolated Docker container
+./run_tests_docker.sh
 
-# Run with coverage
-pytest --cov=wpostgresql --cov-report=html
+# Calculate code coverage
+./run_coverage.sh
 
-# Run specific test file
-pytest test/unit/test_connection.py -v
+# Run unit tests locally with pytest
+PYTHONPATH=src pytest test/unit/
 ```
 
 ## Project Quality Metrics
