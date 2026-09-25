@@ -114,6 +114,10 @@
            :title: Type Safe
            :description: Full Pydantic integration ensures data validity at every step
 
+         - :icon: fa-solid fa-user-shield
+           :title: Forensic Audit Tables
+           :description: Optional ForensicModel for automatic soft delete (status=99) and user audit tracking
+
          - :icon: fa-solid fa-rocket
            :title: High Performance
            :description: Connection pooling and bulk operations for maximum throughput
