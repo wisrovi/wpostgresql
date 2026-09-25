@@ -42,7 +42,7 @@ from wpostgresql.core.connection import (
     get_connection,
     get_transaction,
 )
-from wpostgresql.core.repository import WPostgreSQL
+from wpostgresql.core.repository import ForensicModel, WPostgreSQL
 from wpostgresql.core.sync import AsyncTableSync, TableSync
 from wpostgresql.exceptions import (
     ConnectionError,
@@ -54,10 +54,11 @@ from wpostgresql.exceptions import (
     WPostgreSQLError,
 )
 
-__version__ = "1.2.2"
+__version__ = "1.3.0"
 
 __all__ = [
     "WPostgreSQL",
+    "ForensicModel",
     "backup_to_sqlite",
     "backup_to_sqlite_async",
     "backup_db_to_sqlite",
@@ -86,4 +87,3 @@ __all__ = [
     "SQLInjectionError",
     "TransactionError",
 ]
-
