@@ -2,6 +2,7 @@
 
 import logging
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
@@ -33,6 +34,21 @@ def validate_identifier(identifier: str) -> None:
         raise SQLInjectionError(f"Invalid identifier: {identifier}")
 
 
+class ForensicModel(BaseModel):
+    """Base Pydantic model with forensic audit fields for WPostgreSQL.
+
+    Inheriting from this model automatically enables forensic mode in WPostgreSQL.
+    """
+
+    create_by: Optional[int] = 1
+    create_in: Optional[datetime] = None
+    update_by: Optional[int] = None
+    update_in: Optional[datetime] = None
+    delete_by: Optional[int] = None
+    delete_in: Optional[datetime] = None
+    status: int = 1
+
+
 # pylint: disable=too-many-public-methods
 class WPostgreSQL:
     """PostgreSQL repository using Pydantic models.
@@ -42,9 +58,9 @@ class WPostgreSQL:
 
     Example:
         from pydantic import BaseModel
-        from wpostgresql import WPostgreSQL
+        from wpostgresql import WPostgreSQL, ForensicModel
 
-        class User(BaseModel):
+        class User(ForensicModel):
             id: int
             name: str
             email: str
@@ -58,6 +74,7 @@ class WPostgreSQL:
         model: type[BaseModel],
         db_config: dict,
         pool_config: Optional[dict] = None,
+        forensic: Optional[bool] = None,
     ):
         """Initialize the repository with a Pydantic model.
 
@@ -68,6 +85,8 @@ class WPostgreSQL:
             pool_config: Optional pool configuration dictionary.
                 Expected keys: min_size, max_size.
                 Default: {"min_size": 2, "max_size": 20}
+            forensic: Optional boolean to explicitly enable or disable forensic audit columns.
+                If None, defaults to True if model inherits from ForensicModel, otherwise False.
         """
         from wpostgresql.core.connection import DEFAULT_POOL_CONFIG
 
@@ -75,107 +94,21 @@ class WPostgreSQL:
         self.db_config = db_config
         self.pool_config = pool_config or DEFAULT_POOL_CONFIG
         self.table_name = getattr(model, "__tablename__", model.__name__.lower())
-        self._sync = TableSync(model, db_config, self.pool_config)
 
+        if forensic is None:
+            self.forensic = (
+                issubclass(model, ForensicModel)
+                if isinstance(model, type) and issubclass(model, BaseModel)
+                else False
+            )
+        else:
+            self.forensic = forensic
+
+        self._sync = TableSync(
+            model, db_config, self.pool_config, forensic=self.forensic
+        )
         self._sync.create_if_not_exists()
         self._sync.sync_with_model()
-
-    def insert(self, data: BaseModel) -> None:
-        """Insert a new record into the database.
-
-        Args:
-            data: Pydantic model instance containing the data to insert.
-        """
-        data_dict = {k: v for k, v in data.model_dump().items() if v is not None}
-        fields = ", ".join(data_dict.keys())
-        placeholders = ", ".join(["%s"] * len(data_dict))
-        values = tuple(data_dict.values())
-
-        query = f"INSERT INTO {self.table_name} ({fields}) VALUES ({placeholders})"
-        with get_connection(self.db_config) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, values)
-            conn.commit()
-
-    def get_all(self) -> list[BaseModel]:
-        """Get all records from the table.
-
-        Returns:
-            List[BaseModel]: A list of model instances populated from the database.
-        """
-        query = f"SELECT * FROM {self.table_name}"
-        with get_connection(self.db_config) as conn, conn.cursor() as cursor:
-            cursor.execute(query)
-            rows = cursor.fetchall()
-
-        return [
-            self.model(
-                **{
-                    key: (value if value is not None else self._default_value(key))
-                    for key, value in zip(self.model.model_fields.keys(), row)
-                }
-            )
-            for row in rows
-        ]
-
-    def get_by_field(self, **filters) -> list[BaseModel]:
-        """Get records filtered by specified fields.
-
-        Args:
-            **filters: Keyword arguments mapping column names to filter values.
-
-        Returns:
-            List[BaseModel]: A list of matching model instances.
-        """
-        if not filters:
-            return self.get_all()
-
-        conditions = " AND ".join(f"{key} = %s" for key in filters)
-        values = tuple(filters.values())
-        query = f"SELECT * FROM {self.table_name} WHERE {conditions}"
-
-        with get_connection(self.db_config) as conn, conn.cursor() as cursor:
-            cursor.execute(query, values)
-            rows = cursor.fetchall()
-
-        return [
-            self.model(
-                **{
-                    key: (value if value is not None else self._default_value(key))
-                    for key, value in zip(self.model.model_fields.keys(), row)
-                }
-            )
-            for row in rows
-        ]
-
-    def update(self, record_id: int, data: BaseModel) -> None:
-        """Update a record in the database.
-
-        Args:
-            record_id: The ID of the record to update.
-            data: Pydantic model instance containing the new data.
-        """
-        data_dict = data.model_dump()
-        fields = ", ".join(f"{key} = %s" for key in data_dict)
-        values = tuple(data_dict.values()) + (record_id,)
-        query = f"UPDATE {self.table_name} SET {fields} WHERE id = %s"
-
-        with get_connection(self.db_config) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, values)
-            conn.commit()
-
-    def delete(self, record_id: int) -> None:
-        """Delete a record from the database by its ID.
-
-        Args:
-            record_id: The ID of the record to remove.
-        """
-        query = f"DELETE FROM {self.table_name} WHERE id = %s"
-        with get_connection(self.db_config) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, (record_id,))
-            conn.commit()
 
     def _default_value(self, field: str) -> Any:
         """Get default value for a field when database value is NULL.
@@ -186,7 +119,10 @@ class WPostgreSQL:
         Returns:
             Any: A safe default value based on the field type.
         """
-        field_type = self.model.model_fields[field].annotation
+        field_info = self.model.model_fields.get(field)
+        if not field_info:
+            return None
+        field_type = field_info.annotation
         if field_type is str:
             return ""
         if field_type is int:
@@ -195,12 +131,155 @@ class WPostgreSQL:
             return False
         return None
 
+    def _map_row_to_model(self, colnames: list[str], row: tuple) -> BaseModel:
+        """Map database row values to a Pydantic model instance."""
+        row_dict = dict(zip(colnames, row))
+        kwargs = {}
+        for key in self.model.model_fields.keys():
+            if key in row_dict and row_dict[key] is not None:
+                kwargs[key] = row_dict[key]
+            else:
+                kwargs[key] = self._default_value(key)
+        return self.model(**kwargs)
+
+    def insert(self, data: BaseModel, user_id: Optional[int] = None) -> None:
+        """Insert a new record into the database.
+
+        Args:
+            data: Pydantic model instance containing the data to insert.
+            user_id: Optional ID of the user performing the insertion for forensic tracking.
+        """
+        data_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        if self.forensic:
+            data_dict.setdefault(
+                "create_by",
+                user_id if user_id is not None else getattr(data, "create_by", 1) or 1,
+            )
+            data_dict.setdefault("create_in", datetime.now(timezone.utc))
+            data_dict.setdefault("status", getattr(data, "status", 1) or 1)
+
+        fields = ", ".join(data_dict.keys())
+        placeholders = ", ".join(["%s"] * len(data_dict))
+        values = tuple(data_dict.values())
+
+        query = f"INSERT INTO {self.table_name} ({fields}) VALUES ({placeholders})"
+        with get_connection(self.db_config) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, values)
+            conn.commit()
+
+    def get_all(self, include_deleted: bool = False) -> list[BaseModel]:
+        """Get all records from the table.
+
+        Args:
+            include_deleted: If True, includes soft-deleted records (status=99) in forensic mode.
+
+        Returns:
+            List[BaseModel]: A list of model instances populated from the database.
+        """
+        where_clause = (
+            " WHERE status != 99" if (self.forensic and not include_deleted) else ""
+        )
+        query = f"SELECT * FROM {self.table_name}{where_clause}"
+        with get_connection(self.db_config) as conn, conn.cursor() as cursor:
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            colnames = (
+                [desc[0] for desc in cursor.description] if cursor.description else []
+            )
+
+        return [self._map_row_to_model(colnames, row) for row in rows]
+
+    def get_by_field(self, include_deleted: bool = False, **filters) -> list[BaseModel]:
+        """Get records filtered by specified fields.
+
+        Args:
+            include_deleted: If True, includes soft-deleted records in forensic mode.
+            **filters: Keyword arguments mapping column names to filter values.
+
+        Returns:
+            List[BaseModel]: A list of matching model instances.
+        """
+        conditions = []
+        values = []
+
+        if self.forensic and not include_deleted and "status" not in filters:
+            conditions.append("status != %s")
+            values.append(99)
+
+        for key, val in filters.items():
+            conditions.append(f"{key} = %s")
+            values.append(val)
+
+        where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+        query = f"SELECT * FROM {self.table_name}{where_clause}"
+
+        with get_connection(self.db_config) as conn, conn.cursor() as cursor:
+            cursor.execute(query, tuple(values))
+            rows = cursor.fetchall()
+            colnames = (
+                [desc[0] for desc in cursor.description] if cursor.description else []
+            )
+
+        return [self._map_row_to_model(colnames, row) for row in rows]
+
+    def update(
+        self, record_id: int, data: BaseModel, user_id: Optional[int] = None
+    ) -> None:
+        """Update a record in the database.
+
+        Args:
+            record_id: The ID of the record to update.
+            data: Pydantic model instance containing the new data.
+            user_id: Optional ID of the user performing the update for forensic tracking.
+        """
+        data_dict = data.model_dump()
+        if self.forensic:
+            data_dict["update_by"] = user_id if user_id is not None else 1
+            data_dict["update_in"] = datetime.now(timezone.utc)
+
+        fields = ", ".join(f"{key} = %s" for key in data_dict)
+        values = tuple(data_dict.values()) + (record_id,)
+        query = f"UPDATE {self.table_name} SET {fields} WHERE id = %s"
+
+        with get_connection(self.db_config) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, values)
+            conn.commit()
+
+    def delete(
+        self, record_id: int, user_id: Optional[int] = None, hard: bool = False
+    ) -> None:
+        """Delete a record from the database by its ID.
+
+        Args:
+            record_id: The ID of the record to remove.
+            user_id: Optional ID of the user performing the deletion for forensic tracking.
+            hard: If True, performs a physical DELETE FROM query instead of soft-delete (status=99).
+        """
+        if self.forensic and not hard:
+            query = f"UPDATE {self.table_name} SET status = 99, delete_by = %s, delete_in = %s WHERE id = %s"
+            values = (
+                user_id if user_id is not None else 1,
+                datetime.now(timezone.utc),
+                record_id,
+            )
+        else:
+            query = f"DELETE FROM {self.table_name} WHERE id = %s"
+            values = (record_id,)
+
+        with get_connection(self.db_config) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, values)
+            conn.commit()
+
     def get_paginated(
         self,
         limit: int = 10,
         offset: int = 0,
         order_by: Optional[str] = None,
         order_desc: bool = False,
+        include_deleted: bool = False,
     ) -> list[BaseModel]:
         """Get records with pagination and optional ordering.
 
@@ -209,39 +288,42 @@ class WPostgreSQL:
             offset: Number of records to skip.
             order_by: Optional column name for sorting.
             order_desc: Whether to sort in descending order.
+            include_deleted: Whether to include soft-deleted records in forensic mode.
 
         Returns:
             List[BaseModel]: A page of model instances.
         """
         validate_identifier(self.table_name)
+        where_clause = (
+            " WHERE status != 99" if (self.forensic and not include_deleted) else ""
+        )
+
         if order_by:
             validate_identifier(order_by)
             order_clause = f" ORDER BY {order_by} {'DESC' if order_desc else 'ASC'}"
         else:
             order_clause = ""
 
-        query = f"SELECT * FROM {self.table_name}{order_clause} LIMIT %s OFFSET %s"
+        query = f"SELECT * FROM {self.table_name}{where_clause}{order_clause} LIMIT %s OFFSET %s"
 
         with get_connection(self.db_config) as conn, conn.cursor() as cursor:
             cursor.execute(query, (limit, offset))
             rows = cursor.fetchall()
-
-        return [
-            self.model(
-                **{
-                    key: (value if value is not None else self._default_value(key))
-                    for key, value in zip(self.model.model_fields.keys(), row)
-                }
+            colnames = (
+                [desc[0] for desc in cursor.description] if cursor.description else []
             )
-            for row in rows
-        ]
 
-    def get_page(self, page: int = 1, per_page: int = 10) -> list[BaseModel]:
+        return [self._map_row_to_model(colnames, row) for row in rows]
+
+    def get_page(
+        self, page: int = 1, per_page: int = 10, include_deleted: bool = False
+    ) -> list[BaseModel]:
         """Get records by page number.
 
         Args:
             page: The page number (starting from 1).
             per_page: Number of records per page.
+            include_deleted: Whether to include soft-deleted records in forensic mode.
 
         Returns:
             List[BaseModel]: A list of model instances for the requested page.
@@ -249,31 +331,57 @@ class WPostgreSQL:
         page = max(page, 1)
         per_page = max(per_page, 1)
         offset = (page - 1) * per_page
-        return self.get_paginated(limit=per_page, offset=offset)
+        return self.get_paginated(
+            limit=per_page, offset=offset, include_deleted=include_deleted
+        )
 
-    def count(self) -> int:
+    def count(self, include_deleted: bool = False) -> int:
         """Get total number of records in the table.
+
+        Args:
+            include_deleted: Whether to include soft-deleted records in forensic mode.
 
         Returns:
             int: The total count of records.
         """
         validate_identifier(self.table_name)
-        query = f"SELECT COUNT(*) FROM {self.table_name}"
+        where_clause = (
+            " WHERE status != 99" if (self.forensic and not include_deleted) else ""
+        )
+        query = f"SELECT COUNT(*) FROM {self.table_name}{where_clause}"
         with get_connection(self.db_config) as conn, conn.cursor() as cursor:
             cursor.execute(query)
             result = cursor.fetchone()
         return result[0] if result else 0
 
-    def insert_many(self, data_list: list[BaseModel]) -> None:
+    def insert_many(
+        self, data_list: list[BaseModel], user_id: Optional[int] = None
+    ) -> None:
         """Insert multiple records in a single transaction.
 
         Args:
             data_list: A list of model instances to insert.
+            user_id: Optional user ID performing insertion in forensic mode.
         """
         if not data_list:
             return
 
-        data_dicts = [data.model_dump() for data in data_list]
+        data_dicts = []
+        for data in data_list:
+            d = {k: v for k, v in data.model_dump().items() if v is not None}
+            if self.forensic:
+                d.setdefault(
+                    "create_by",
+                    (
+                        user_id
+                        if user_id is not None
+                        else getattr(data, "create_by", 1) or 1
+                    ),
+                )
+                d.setdefault("create_in", datetime.now(timezone.utc))
+                d.setdefault("status", getattr(data, "status", 1) or 1)
+            data_dicts.append(d)
+
         fields = ", ".join(data_dicts[0].keys())
         placeholders = ", ".join(["%s"] * len(data_dicts[0]))
 
@@ -286,11 +394,14 @@ class WPostgreSQL:
                     cursor.execute(query, values)
             conn.commit()
 
-    def update_many(self, updates: list[tuple[BaseModel, int]]) -> int:
+    def update_many(
+        self, updates: list[tuple[BaseModel, int]], user_id: Optional[int] = None
+    ) -> int:
         """Update multiple records efficiently.
 
         Args:
             updates: A list of tuples containing (new_data_model, record_id).
+            user_id: Optional user ID performing updates in forensic mode.
 
         Returns:
             int: The total number of records updated.
@@ -305,6 +416,9 @@ class WPostgreSQL:
             with conn.cursor() as cursor:
                 for data, record_id in updates:
                     data_dict = data.model_dump()
+                    if self.forensic:
+                        data_dict["update_by"] = user_id if user_id is not None else 1
+                        data_dict["update_in"] = datetime.now(timezone.utc)
                     fields = ", ".join(f"{key} = %s" for key in data_dict)
                     values = tuple(data_dict.values()) + (record_id,)
                     query = f"UPDATE {self.table_name} SET {fields} WHERE id = %s"
@@ -314,11 +428,15 @@ class WPostgreSQL:
 
         return total_updated
 
-    def delete_many(self, record_ids: list[int]) -> int:
+    def delete_many(
+        self, record_ids: list[int], user_id: Optional[int] = None, hard: bool = False
+    ) -> int:
         """Delete multiple records by their IDs.
 
         Args:
             record_ids: A list of IDs to remove.
+            user_id: Optional user ID performing deletion in forensic mode.
+            hard: If True, performs physical DELETE FROM queries instead of soft-delete.
 
         Returns:
             int: The number of records deleted.
@@ -331,8 +449,17 @@ class WPostgreSQL:
         with get_connection(self.db_config) as conn:
             with conn.cursor() as cursor:
                 for record_id in record_ids:
-                    query = f"DELETE FROM {self.table_name} WHERE id = %s"
-                    cursor.execute(query, (record_id,))
+                    if self.forensic and not hard:
+                        query = f"UPDATE {self.table_name} SET status = 99, delete_by = %s, delete_in = %s WHERE id = %s"
+                        values = (
+                            user_id if user_id is not None else 1,
+                            datetime.now(timezone.utc),
+                            record_id,
+                        )
+                    else:
+                        query = f"DELETE FROM {self.table_name} WHERE id = %s"
+                        values = (record_id,)
+                    cursor.execute(query, values)
             conn.commit()
 
         return len(record_ids)
@@ -385,13 +512,24 @@ class WPostgreSQL:
             logger.error("Transaction failed: %s", e)
             raise TransactionError(f"Transaction failed: {e}") from e
 
-    async def insert_async(self, data: BaseModel) -> None:
+    async def insert_async(
+        self, data: BaseModel, user_id: Optional[int] = None
+    ) -> None:
         """Asynchronously insert a new record into the database.
 
         Args:
             data: Model instance containing data to insert.
+            user_id: Optional user ID for forensic tracking.
         """
-        data_dict = data.model_dump()
+        data_dict = {k: v for k, v in data.model_dump().items() if v is not None}
+        if self.forensic:
+            data_dict.setdefault(
+                "create_by",
+                user_id if user_id is not None else getattr(data, "create_by", 1) or 1,
+            )
+            data_dict.setdefault("create_in", datetime.now(timezone.utc))
+            data_dict.setdefault("status", getattr(data, "status", 1) or 1)
+
         fields = ", ".join(data_dict.keys())
         placeholders = ", ".join(["%s"] * len(data_dict))
         values = tuple(data_dict.values())
@@ -403,67 +541,80 @@ class WPostgreSQL:
                 await cursor.execute(query, values)
             await conn.commit()
 
-    async def get_all_async(self) -> list[BaseModel]:
+    async def get_all_async(self, include_deleted: bool = False) -> list[BaseModel]:
         """Asynchronously retrieve all records from the table.
+
+        Args:
+            include_deleted: If True, includes soft-deleted records in forensic mode.
 
         Returns:
             List[BaseModel]: List of model instances.
         """
-        query = f"SELECT * FROM {self.table_name}"
+        where_clause = (
+            " WHERE status != 99" if (self.forensic and not include_deleted) else ""
+        )
+        query = f"SELECT * FROM {self.table_name}{where_clause}"
         conn = await get_async_connection(self.db_config)
         async with conn, conn.cursor() as cursor:
             await cursor.execute(query)
             rows = await cursor.fetchall()
-
-        return [
-            self.model(
-                **{
-                    key: (value if value is not None else self._default_value(key))
-                    for key, value in zip(self.model.model_fields.keys(), row)
-                }
+            colnames = (
+                [desc[0] for desc in cursor.description] if cursor.description else []
             )
-            for row in rows
-        ]
 
-    async def get_by_field_async(self, **filters) -> list[BaseModel]:
+        return [self._map_row_to_model(colnames, row) for row in rows]
+
+    async def get_by_field_async(
+        self, include_deleted: bool = False, **filters
+    ) -> list[BaseModel]:
         """Asynchronously get records filtered by specified fields.
 
         Args:
+            include_deleted: If True, includes soft-deleted records in forensic mode.
             **filters: Field names and values to filter by.
 
         Returns:
             List[BaseModel]: List of matching model instances.
         """
-        if not filters:
-            return await self.get_all_async()
+        conditions = []
+        values = []
 
-        conditions = " AND ".join(f"{key} = %s" for key in filters)
-        values = tuple(filters.values())
-        query = f"SELECT * FROM {self.table_name} WHERE {conditions}"
+        if self.forensic and not include_deleted and "status" not in filters:
+            conditions.append("status != %s")
+            values.append(99)
+
+        for key, val in filters.items():
+            conditions.append(f"{key} = %s")
+            values.append(val)
+
+        where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+        query = f"SELECT * FROM {self.table_name}{where_clause}"
 
         conn = await get_async_connection(self.db_config)
         async with conn, conn.cursor() as cursor:
-            await cursor.execute(query, values)
+            await cursor.execute(query, tuple(values))
             rows = await cursor.fetchall()
-
-        return [
-            self.model(
-                **{
-                    key: (value if value is not None else self._default_value(key))
-                    for key, value in zip(self.model.model_fields.keys(), row)
-                }
+            colnames = (
+                [desc[0] for desc in cursor.description] if cursor.description else []
             )
-            for row in rows
-        ]
 
-    async def update_async(self, record_id: int, data: BaseModel) -> None:
+        return [self._map_row_to_model(colnames, row) for row in rows]
+
+    async def update_async(
+        self, record_id: int, data: BaseModel, user_id: Optional[int] = None
+    ) -> None:
         """Asynchronously update a record in the database.
 
         Args:
             record_id: ID of the record to update.
             data: Model instance with new data.
+            user_id: Optional user ID performing update for forensic tracking.
         """
         data_dict = data.model_dump()
+        if self.forensic:
+            data_dict["update_by"] = user_id if user_id is not None else 1
+            data_dict["update_in"] = datetime.now(timezone.utc)
+
         fields = ", ".join(f"{key} = %s" for key in data_dict)
         values = tuple(data_dict.values()) + (record_id,)
         query = f"UPDATE {self.table_name} SET {fields} WHERE id = %s"
@@ -474,17 +625,31 @@ class WPostgreSQL:
                 await cursor.execute(query, values)
             await conn.commit()
 
-    async def delete_async(self, record_id: int) -> None:
+    async def delete_async(
+        self, record_id: int, user_id: Optional[int] = None, hard: bool = False
+    ) -> None:
         """Asynchronously delete a record from the database.
 
         Args:
             record_id: ID of the record to delete.
+            user_id: Optional user ID for forensic tracking.
+            hard: If True, performs physical DELETE FROM queries instead of soft-delete.
         """
-        query = f"DELETE FROM {self.table_name} WHERE id = %s"
+        if self.forensic and not hard:
+            query = f"UPDATE {self.table_name} SET status = 99, delete_by = %s, delete_in = %s WHERE id = %s"
+            values = (
+                user_id if user_id is not None else 1,
+                datetime.now(timezone.utc),
+                record_id,
+            )
+        else:
+            query = f"DELETE FROM {self.table_name} WHERE id = %s"
+            values = (record_id,)
+
         conn = await get_async_connection(self.db_config)
         async with conn:
             async with conn.cursor() as cursor:
-                await cursor.execute(query, (record_id,))
+                await cursor.execute(query, values)
             await conn.commit()
 
     async def get_paginated_async(
@@ -493,6 +658,7 @@ class WPostgreSQL:
         offset: int = 0,
         order_by: Optional[str] = None,
         order_desc: bool = False,
+        include_deleted: bool = False,
     ) -> list[BaseModel]:
         """Asynchronously get records with pagination and sorting.
 
@@ -501,40 +667,43 @@ class WPostgreSQL:
             offset: Skip records.
             order_by: Column to sort.
             order_desc: Descending order if True.
+            include_deleted: Whether to include soft-deleted records in forensic mode.
 
         Returns:
             List[BaseModel]: A page of results.
         """
         validate_identifier(self.table_name)
+        where_clause = (
+            " WHERE status != 99" if (self.forensic and not include_deleted) else ""
+        )
+
         if order_by:
             validate_identifier(order_by)
             order_clause = f" ORDER BY {order_by} {'DESC' if order_desc else 'ASC'}"
         else:
             order_clause = ""
 
-        query = f"SELECT * FROM {self.table_name}{order_clause} LIMIT %s OFFSET %s"
+        query = f"SELECT * FROM {self.table_name}{where_clause}{order_clause} LIMIT %s OFFSET %s"
 
         conn = await get_async_connection(self.db_config)
         async with conn, conn.cursor() as cursor:
             await cursor.execute(query, (limit, offset))
             rows = await cursor.fetchall()
-
-        return [
-            self.model(
-                **{
-                    key: (value if value is not None else self._default_value(key))
-                    for key, value in zip(self.model.model_fields.keys(), row)
-                }
+            colnames = (
+                [desc[0] for desc in cursor.description] if cursor.description else []
             )
-            for row in rows
-        ]
 
-    async def get_page_async(self, page: int = 1, per_page: int = 10) -> list[BaseModel]:
+        return [self._map_row_to_model(colnames, row) for row in rows]
+
+    async def get_page_async(
+        self, page: int = 1, per_page: int = 10, include_deleted: bool = False
+    ) -> list[BaseModel]:
         """Asynchronously get records by page number.
 
         Args:
             page: Page number (1-based).
             per_page: Records per page.
+            include_deleted: Whether to include soft-deleted records in forensic mode.
 
         Returns:
             List[BaseModel]: Page of results.
@@ -542,32 +711,58 @@ class WPostgreSQL:
         page = max(page, 1)
         per_page = max(per_page, 1)
         offset = (page - 1) * per_page
-        return await self.get_paginated_async(limit=per_page, offset=offset)
+        return await self.get_paginated_async(
+            limit=per_page, offset=offset, include_deleted=include_deleted
+        )
 
-    async def count_async(self) -> int:
+    async def count_async(self, include_deleted: bool = False) -> int:
         """Asynchronously count total records in the table.
+
+        Args:
+            include_deleted: Whether to include soft-deleted records in forensic mode.
 
         Returns:
             int: Total record count.
         """
         validate_identifier(self.table_name)
-        query = f"SELECT COUNT(*) FROM {self.table_name}"
+        where_clause = (
+            " WHERE status != 99" if (self.forensic and not include_deleted) else ""
+        )
+        query = f"SELECT COUNT(*) FROM {self.table_name}{where_clause}"
         conn = await get_async_connection(self.db_config)
         async with conn, conn.cursor() as cursor:
             await cursor.execute(query)
             result = await cursor.fetchone()
         return result[0] if result else 0
 
-    async def insert_many_async(self, data_list: list[BaseModel]) -> None:
+    async def insert_many_async(
+        self, data_list: list[BaseModel], user_id: Optional[int] = None
+    ) -> None:
         """Asynchronously insert multiple records in one transaction.
 
         Args:
             data_list: List of models to insert.
+            user_id: Optional user ID for forensic tracking.
         """
         if not data_list:
             return
 
-        data_dicts = [data.model_dump() for data in data_list]
+        data_dicts = []
+        for data in data_list:
+            d = {k: v for k, v in data.model_dump().items() if v is not None}
+            if self.forensic:
+                d.setdefault(
+                    "create_by",
+                    (
+                        user_id
+                        if user_id is not None
+                        else getattr(data, "create_by", 1) or 1
+                    ),
+                )
+                d.setdefault("create_in", datetime.now(timezone.utc))
+                d.setdefault("status", getattr(data, "status", 1) or 1)
+            data_dicts.append(d)
+
         fields = ", ".join(data_dicts[0].keys())
         placeholders = ", ".join(["%s"] * len(data_dicts[0]))
 
@@ -581,11 +776,14 @@ class WPostgreSQL:
                     await cursor.execute(query, values)
             await conn.commit()
 
-    async def update_many_async(self, updates: list[tuple[BaseModel, int]]) -> int:
+    async def update_many_async(
+        self, updates: list[tuple[BaseModel, int]], user_id: Optional[int] = None
+    ) -> int:
         """Asynchronously update multiple records.
 
         Args:
             updates: List of (model, id) tuples.
+            user_id: Optional user ID for forensic tracking.
 
         Returns:
             int: Number of records updated.
@@ -601,6 +799,9 @@ class WPostgreSQL:
             async with conn.cursor() as cursor:
                 for data, record_id in updates:
                     data_dict = data.model_dump()
+                    if self.forensic:
+                        data_dict["update_by"] = user_id if user_id is not None else 1
+                        data_dict["update_in"] = datetime.now(timezone.utc)
                     fields = ", ".join(f"{key} = %s" for key in data_dict)
                     values = tuple(data_dict.values()) + (record_id,)
                     query = f"UPDATE {self.table_name} SET {fields} WHERE id = %s"
@@ -610,11 +811,15 @@ class WPostgreSQL:
 
         return total_updated
 
-    async def delete_many_async(self, record_ids: list[int]) -> int:
+    async def delete_many_async(
+        self, record_ids: list[int], user_id: Optional[int] = None, hard: bool = False
+    ) -> int:
         """Asynchronously delete multiple records by ID.
 
         Args:
             record_ids: List of IDs to delete.
+            user_id: Optional user ID for forensic tracking.
+            hard: If True, performs physical DELETE FROM queries.
 
         Returns:
             int: Number of IDs deleted.
@@ -628,13 +833,24 @@ class WPostgreSQL:
         async with conn:
             async with conn.cursor() as cursor:
                 for record_id in record_ids:
-                    query = f"DELETE FROM {self.table_name} WHERE id = %s"
-                    await cursor.execute(query, (record_id,))
-            await conn.commit()
+                    if self.forensic and not hard:
+                        query = f"UPDATE {self.table_name} SET status = 99, delete_by = %s, delete_in = %s WHERE id = %s"
+                        values = (
+                            user_id if user_id is not None else 1,
+                            datetime.now(timezone.utc),
+                            record_id,
+                        )
+                    else:
+                        query = f"DELETE FROM {self.table_name} WHERE id = %s"
+                        values = (record_id,)
+                    await cursor.execute(query, values)
+            conn.commit()
 
         return len(record_ids)
 
-    async def execute_transaction_async(self, operations: list[tuple[str, tuple]]) -> list[Any]:
+    async def execute_transaction_async(
+        self, operations: list[tuple[str, tuple]]
+    ) -> list[Any]:
         """Asynchronously execute multiple SQL operations in one transaction.
 
         Args:
@@ -654,13 +870,17 @@ class WPostgreSQL:
                             result = await cursor.fetchall()
                             results.append(result)
                 await conn.commit()
-                logger.info("Async transaction completed with %d operations", len(operations))
+                logger.info(
+                    "Async transaction completed with %d operations", len(operations)
+                )
         except Exception as e:
             logger.error("Async transaction failed: %s", e)
             raise TransactionError(f"Async transaction failed: {e}") from e
         return results
 
-    async def with_transaction_async(self, func: Callable[[AsyncTransaction], Any]) -> Any:
+    async def with_transaction_async(
+        self, func: Callable[[AsyncTransaction], Any]
+    ) -> Any:
         """Asynchronously execute a custom function in a transaction.
 
         Args:
@@ -682,7 +902,9 @@ class WPostgreSQL:
             logger.error("Async transaction failed: %s", e)
             raise TransactionError(f"Async transaction failed: {e}") from e
 
-    def backup_to_sqlite(self, sqlite_path: Union[str, Path], update: bool = False) -> int:
+    def backup_to_sqlite(
+        self, sqlite_path: Union[str, Path], update: bool = False
+    ) -> int:
         """Backup table records to an SQLite database using wsqlite.
 
         Args:
