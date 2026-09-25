@@ -5,10 +5,10 @@
 Main class for PostgreSQL operations using Pydantic models.
 
 ```python
-from wpostgresql import WPostgreSQL
+from wpostgresql import WPostgreSQL, ForensicModel
 from pydantic import BaseModel
 
-class Person(BaseModel):
+class Person(ForensicModel):
     id: int
     name: str
     age: int
@@ -19,21 +19,38 @@ db = WPostgreSQL(Person, db_config)
 ### Constructor
 
 ```python
-WPostgreSQL(model: type[BaseModel], db_config: dict)
+WPostgreSQL(model: type[BaseModel], db_config: dict, pool_config: Optional[dict] = None, forensic: Optional[bool] = None)
 ```
 
 **Parameters:**
 - `model` (type[BaseModel]): Pydantic BaseModel class defining the table schema.
 - `db_config` (dict): PostgreSQL connection configuration.
-  ```python
-  db_config = {
-      "dbname": "mydb",
-      "user": "postgres",
-      "password": "password",
-      "host": "localhost",
-      "port": 5432,
-  }
-  ```
+- `pool_config` (Optional[dict]): Optional connection pool configuration.
+- `forensic` (Optional[bool]): Explicitly enable/disable forensic audit fields. Defaults to True if model inherits from `ForensicModel`, otherwise False.
+
+---
+
+## ForensicModel
+
+Base class for Pydantic models with built-in forensic audit tracking (`create_by`, `create_in`, `update_by`, `update_in`, `delete_by`, `delete_in`, `status`).
+
+```python
+from wpostgresql import ForensicModel
+
+class User(ForensicModel):
+    id: int
+    name: str
+    email: str
+```
+
+### Forensic Fields:
+- `create_by` (int): User ID who created the record (default: 1).
+- `create_in` (datetime): UTC timestamp of record creation.
+- `update_by` (int): User ID who last updated the record.
+- `update_in` (datetime): UTC timestamp of last update.
+- `delete_by` (int): User ID who soft-deleted the record.
+- `delete_in` (datetime): UTC timestamp of soft deletion.
+- `status` (int): Row status code (default: 1 = Active, 99 = Soft Deleted).
 
 ---
 
