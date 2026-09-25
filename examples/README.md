@@ -112,6 +112,7 @@ graph TD
 | `15_backups/` | SQLite backup via wsqlite |
 | `16_forensic_fields/` | Automatic audit forensic tracking |
 | `17_multi_table/` | Multi-table management & auto-routing |
+| `18_ghost_table_audit/` | Enterprise Ghost Table audit log (_forensic_audit_log) |
 
 ---
 
