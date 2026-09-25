@@ -323,15 +323,14 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                v1.0.0 LTS • 228 Tests Passing • 95% Coverage
+                v1.4.0 • Enterprise Forensic Automation & Multi-Table ORM
             </div>
             <h1 class="hero-title">
-                <span class="gradient-text">Type-Safe PostgreSQL ORM</span><br>
-                Using Pydantic Models
+                <span class="gradient-text">Enterprise Forensic Automation</span><br>
+                & Type-Safe PostgreSQL ORM
             </h1>
             <p class="hero-subtitle">
-                Simple and powerful PostgreSQL ORM for Python. Define your schema with Pydantic, 
-                and wpostgresql handles the rest. Auto table creation, async support, and built-in connection pooling.
+                More than a simple ORM. <strong>wpostgresql</strong> delivers automated forensic audit trails (<code>_forensic_audit_log</code>), Change Data Capture (CDC), multi-table routing, and Pydantic v2 schema synchronization with zero boilerplate.
             </p>
             <div class="hero-actions">
                 <a href="https://github.com/wisrovi/wpostgresql" class="btn btn-primary" target="_blank">
@@ -358,22 +357,15 @@
             </div>
             <div class="hero-code-container">
                 <div class="hero-code">
-<pre><span class="comment"># Install</span>
-pip install wpostgresql
+<pre><span class="comment"># Define Forensic Model - Ghost Audit Table _forensic_audit_log is auto-managed!</span>
+<span class="keyword">from</span> wpostgresql <span class="keyword">import</span> WPostgreSQL, ForensicModel
 
-<span class="comment"># Define your model</span>
-<span class="keyword">from</span> pydantic <span class="keyword">import</span> BaseModel
-<span class="keyword">from</span> wpostgresql <span class="keyword">import</span> WPostgreSQL
-
-<span class="keyword">class</span> <span class="function">User</span>(BaseModel):
+<span class="keyword">class</span> <span class="function">User</span>(ForensicModel):
     id: <span class="keyword">int</span>
     name: <span class="keyword">str</span>
-    email: <span class="keyword">str</span>
 
-<span class="comment"># Create database - table auto-created!</span>
-db = WPostgreSQL(User, db_config)
-db.insert(User(id=<span class="number">1</span>, name=<span class="string">"John"</span>, email=<span class="string">"john@example.com"</span>))
-users = db.get_all()  <span class="comment"># Done!</span></pre>
+db = WPostgreSQL([User], db_config)
+db.insert(User(id=<span class="number">1</span>, name=<span class="string">"William"</span>), user_id=<span class="number">42</span>)  <span class="comment"># Auto-tracks before/after JSON in _forensic_audit_log!</span></pre>
                 </div>
             </div>
         </div>
@@ -384,9 +376,14 @@ users = db.get_all()  <span class="comment"># Done!</span></pre>
             <div class="section-header">
                 <span class="section-label">Capabilities</span>
                 <h2 class="section-title">Everything You <span class="gradient-text">Need</span></h2>
-                <p class="section-description">Production-ready features for modern Python applications.</p>
+                <p class="section-description">Enterprise-grade forensic automation and modern ORM features.</p>
             </div>
             <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">👻</div>
+                    <h3>Ghost Audit Trail (_forensic_audit_log)</h3>
+                    <p>Automatic creation and tracking of global <code>_forensic_audit_log</code> storing before/after JSON snapshots and user audit metadata on every INSERT, UPDATE, SOFT_DELETE, and HARD_DELETE.</p>
+                </div>
                 <div class="feature-card">
                     <div class="feature-icon">🗂️</div>
                     <h3>Multi-Table Management</h3>
