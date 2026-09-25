@@ -388,6 +388,11 @@ users = db.get_all()  <span class="comment"># Done!</span></pre>
             </div>
             <div class="features-grid">
                 <div class="feature-card">
+                    <div class="feature-icon">🗂️</div>
+                    <h3>Multi-Table Management</h3>
+                    <p>Register multiple models in one instance. Access tables intuitively with <code>db[User]</code>, <code>db.product</code>, or auto-routed <code>db.insert()</code>.</p>
+                </div>
+                <div class="feature-card">
                     <div class="feature-icon">🔗</div>
                     <h3>Pydantic Integration</h3>
                     <p>Define your database schema using Pydantic models. Full type validation and serialization.</p>
@@ -486,12 +491,12 @@ users = <span class="keyword">await</span> db.get_all_async()</pre>
                     </div>
                 </div>
                 <div class="qs-card">
-                    <div class="qs-header"><div class="qs-header-icon"><span>3</span></div><h3>Auto Pooling</h3></div>
+                    <div class="qs-header"><div class="qs-header-icon"><span>3</span></div><h3>Multi-Table</h3></div>
                     <div class="qs-body">
                         <div class="qs-code">
-<pre><span class="comment"># Pooling is automatic!</span>
-<span class="comment"># Just use the library</span>
-db = WPostgreSQL(Model, config)</pre>
+<pre>db = WPostgreSQL([User, Product], config)
+db[User].insert(user)
+products = db.product.get_all()</pre>
                         </div>
                     </div>
                 </div>
