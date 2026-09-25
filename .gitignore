@@ -1,5 +1,9 @@
 LINKEDIN_POST.md
 
+# Database & dump files
+*.db
+*.sql
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
