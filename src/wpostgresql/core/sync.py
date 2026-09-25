@@ -41,13 +41,34 @@ class TableSync:
         self.forensic = forensic
         self.table_name = getattr(model, "__tablename__", model.__name__.lower())
 
+    def create_audit_table_if_not_exists(self):
+        """Create global forensic audit log ghost table (_forensic_audit_log)."""
+        query = (
+            "CREATE TABLE IF NOT EXISTS _forensic_audit_log ("
+            "id SERIAL PRIMARY KEY, "
+            "table_name TEXT NOT NULL, "
+            "action_type TEXT NOT NULL, "
+            "record_id TEXT, "
+            "data_before TEXT, "
+            "data_after TEXT, "
+            "create_by INTEGER DEFAULT 1, "
+            "create_in TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, "
+            "status INTEGER DEFAULT 1"
+            ")"
+        )
+        with get_connection(self.db_config) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query)
+            conn.commit()
+
     def create_if_not_exists(self):
-        """Create the table if it doesn't exist."""
+        """Create the table if it doesn't exist, and create ghost audit table if in forensic mode."""
         field_defs = [
             f"{field} {get_sql_type(typ)}"
             for field, typ in self.model.model_fields.items()
         ]
         if self.forensic:
+            self.create_audit_table_if_not_exists()
             model_fields = set(self.model.model_fields.keys())
             for f_name, f_sql in FORENSIC_COLUMNS.items():
                 if f_name not in model_fields:
