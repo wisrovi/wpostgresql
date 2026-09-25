@@ -27,10 +27,12 @@
     </a>
 </p>
 
-**wpostgresql** is a high-performance, type-safe PostgreSQL ORM that leverages Pydantic models for schema definition and automatic table synchronization. It provides a seamless developer experience with full support for both synchronous and asynchronous operations.
+**wpostgresql** is an enterprise-grade, type-safe PostgreSQL ORM and forensic automation engine that leverages Pydantic models for schema definition, multi-table management, and automatic audit trail tracking (`_forensic_audit_log`). It goes far beyond basic database CRUD by providing built-in change data capture (CDC), soft-deletion tracking, and full async/await support.
 
 ## Key Features
 
+- **Enterprise Forensic Audit Engine** — Automatic creation and tracking of `_forensic_audit_log` (Ghost Table) storing before/after JSON snapshots and user audit metadata for all CRUD operations
+- **Multi-Table Management** — Manage multiple database tables seamlessly from a single `WPostgreSQL([User, Product, Order])` instance with `db[User]` indexing, `db.product` attribute access, and auto-routing
 - **Pydantic Integration** — Define database schemas using Pydantic v2 models with automatic type validation
 - **Auto Table Synchronization** — Tables are created and updated automatically based on model changes
 - **Type-Safe Operations** — Full type hints with Pydantic validation for data integrity
@@ -38,12 +40,6 @@
 - **Connection Pooling** — Built-in connection pooling for both sync and async operations
 - **Transaction Management** — Robust transaction support with automatic rollback
 - **Bulk Operations** — Efficient bulk insert, update, and delete operations
-- **Constraint Support** — Primary Key, UNIQUE, and NOT NULL constraints via field descriptions
-- **Query Builder** — Safe SQL query construction with injection prevention
-- **CLI Tool** — Command-line interface for database management
-- **Code Quality** — Pylint score > 9.5, Bandit security checks passing, mypy type checking
-- **Pagination** — LIMIT/OFFSET and page-number based pagination
-- **Multi-Table Management** — Manage multiple database tables seamlessly from a single `WPostgreSQL([User, Product, Order])` instance with `db[User]` indexing, `db.product` attribute access, and auto-routing
 - **SQLite Backup** — Export PostgreSQL table data directly to SQLite database files using `wsqlite`
 
 ## Technical Stack
