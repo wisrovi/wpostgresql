@@ -53,62 +53,223 @@ class ForensicModel(BaseModel):
 class WPostgreSQL:
     """PostgreSQL repository using Pydantic models.
 
-    Provides a simple interface for CRUD operations on PostgreSQL tables,
-    with automatic table creation and schema synchronization.
+    Provides a simple and type-safe interface for CRUD operations on PostgreSQL tables,
+    with automatic table creation, schema synchronization, and single/multi-table management.
 
-    Example:
-        from pydantic import BaseModel
-        from wpostgresql import WPostgreSQL, ForensicModel
-
-        class User(ForensicModel):
-            id: int
-            name: str
-            email: str
-
+    Single-table example:
         db = WPostgreSQL(User, db_config)
         db.insert(User(id=1, name="John", email="john@example.com"))
+
+    Multi-table example:
+        db = WPostgreSQL([User, Product, Order], db_config)
+        db[User].insert(User(id=1, name="John", email="john@example.com"))
+        db.product.get_all()
     """
 
     def __init__(
         self,
-        model: type[BaseModel],
-        db_config: dict,
+        target: Optional[
+            Union[
+                type[BaseModel],
+                list[type[BaseModel]],
+                tuple[type[BaseModel], ...],
+                dict,
+            ]
+        ] = None,
+        db_config: Optional[dict] = None,
         pool_config: Optional[dict] = None,
         forensic: Optional[bool] = None,
+        models: Optional[
+            Union[list[type[BaseModel]], tuple[type[BaseModel], ...]]
+        ] = None,
+        model: Optional[type[BaseModel]] = None,
     ):
-        """Initialize the repository with a Pydantic model.
+        """Initialize WPostgreSQL repository or multitabla database manager.
 
         Args:
-            model: Pydantic BaseModel class defining the table schema.
+            target: Single Pydantic model class, list of model classes, or db_config dict.
             db_config: PostgreSQL connection configuration dictionary.
-                Expected keys: dbname, user, password, host, port.
-            pool_config: Optional pool configuration dictionary.
-                Expected keys: min_size, max_size.
-                Default: {"min_size": 2, "max_size": 20}
+            pool_config: Optional connection pool configuration dictionary.
             forensic: Optional boolean to explicitly enable or disable forensic audit columns.
-                If None, defaults to True if model inherits from ForensicModel, otherwise False.
+            models: Optional list of Pydantic model classes for multi-table mode.
+            model: Optional single Pydantic model class for single-table mode.
         """
         from wpostgresql.core.connection import DEFAULT_POOL_CONFIG
 
-        self.model = model
-        self.db_config = db_config
-        self.pool_config = pool_config or DEFAULT_POOL_CONFIG
-        self.table_name = getattr(model, "__tablename__", model.__name__.lower())
-
-        if forensic is None:
-            self.forensic = (
-                issubclass(model, ForensicModel)
-                if isinstance(model, type) and issubclass(model, BaseModel)
-                else False
-            )
-        else:
-            self.forensic = forensic
-
-        self._sync = TableSync(
-            model, db_config, self.pool_config, forensic=self.forensic
+        resolved_db_config = db_config
+        resolved_models: Optional[list[type[BaseModel]]] = (
+            list(models) if models is not None else None
         )
-        self._sync.create_if_not_exists()
-        self._sync.sync_with_model()
+        resolved_model: Optional[type[BaseModel]] = model
+
+        if isinstance(target, dict) and resolved_db_config is None:
+            resolved_db_config = target
+        elif isinstance(target, (list, tuple)):
+            resolved_models = list(target)
+        elif isinstance(target, type) and issubclass(target, BaseModel):
+            resolved_model = target
+
+        if resolved_db_config is None:
+            raise ValueError(
+                "db_config dictionary must be provided to initialize WPostgreSQL."
+            )
+
+        self.db_config = resolved_db_config
+        self.pool_config = pool_config or DEFAULT_POOL_CONFIG
+        self.forensic_setting = forensic
+
+        self._repositories: dict[Union[type[BaseModel], str], "WPostgreSQL"] = {}
+        self._repositories_by_name: dict[str, "WPostgreSQL"] = {}
+
+        if resolved_models is not None:
+            self.is_multi_table = True
+            self.model = None
+            self.table_name = None
+            self.forensic = False
+            self._sync = None
+            for m in resolved_models:
+                self.register_model(m)
+        elif resolved_model is not None:
+            self.is_multi_table = False
+            self.model = resolved_model
+            self.table_name = getattr(
+                resolved_model, "__tablename__", resolved_model.__name__.lower()
+            )
+
+            if forensic is None:
+                self.forensic = (
+                    issubclass(resolved_model, ForensicModel)
+                    if isinstance(resolved_model, type)
+                    and issubclass(resolved_model, BaseModel)
+                    else False
+                )
+            else:
+                self.forensic = forensic
+
+            self._sync = TableSync(
+                resolved_model, self.db_config, self.pool_config, forensic=self.forensic
+            )
+            self._sync.create_if_not_exists()
+            self._sync.sync_with_model()
+            self._register_repository_references(resolved_model, self)
+        else:
+            self.is_multi_table = True
+            self.model = None
+            self.table_name = None
+            self.forensic = False
+            self._sync = None
+
+    def register_model(
+        self, model: type[BaseModel], forensic: Optional[bool] = None
+    ) -> "WPostgreSQL":
+        """Register a model and create/sync its table in multi-table mode.
+
+        Args:
+            model: Pydantic BaseModel class defining the table schema.
+            forensic: Optional boolean to override forensic audit setting for this table.
+
+        Returns:
+            WPostgreSQL: The single-table repository instance for the registered model.
+        """
+        use_forensic = forensic if forensic is not None else self.forensic_setting
+        repo = WPostgreSQL(
+            model=model,
+            db_config=self.db_config,
+            pool_config=self.pool_config,
+            forensic=use_forensic,
+        )
+        self._register_repository_references(model, repo)
+        return repo
+
+    def register_models(
+        self,
+        *models: Union[
+            type[BaseModel], list[type[BaseModel]], tuple[type[BaseModel], ...]
+        ],
+    ) -> list["WPostgreSQL"]:
+        """Register multiple models at once.
+
+        Args:
+            *models: Pydantic model classes or lists of model classes.
+
+        Returns:
+            list[WPostgreSQL]: Registered repository instances.
+        """
+        registered = []
+        for item in models:
+            if isinstance(item, (list, tuple)):
+                for sub_m in item:
+                    registered.append(self.register_model(sub_m))
+            elif isinstance(item, type) and issubclass(item, BaseModel):
+                registered.append(self.register_model(item))
+        return registered
+
+    def _register_repository_references(
+        self, model: type[BaseModel], repo: "WPostgreSQL"
+    ) -> None:
+        table_name = getattr(model, "__tablename__", model.__name__.lower())
+        model_name = model.__name__.lower()
+
+        self._repositories[model] = repo
+        self._repositories[model_name] = repo
+        self._repositories[table_name] = repo
+        self._repositories_by_name[model_name] = repo
+        self._repositories_by_name[table_name] = repo
+
+    def __getitem__(self, item: Union[type[BaseModel], str]) -> "WPostgreSQL":
+        """Access table repository using Pydantic model class or table/model name.
+
+        Example:
+            db[User].insert(...)
+            db["user"].get_all()
+        """
+        if isinstance(item, type) and issubclass(item, BaseModel):
+            if item in self._repositories:
+                return self._repositories[item]
+        elif isinstance(item, str):
+            item_lower = item.lower()
+            if item_lower in self._repositories:
+                return self._repositories[item_lower]
+
+        if not self.is_multi_table and self.model:
+            if item == self.model or (
+                isinstance(item, str)
+                and item.lower() in (self.table_name, self.model.__name__.lower())
+            ):
+                return self
+
+        raise KeyError(
+            f"Model or table '{item}' is not registered in WPostgreSQL multitabla registry."
+        )
+
+    def __getattr__(self, name: str) -> Any:
+        """Access table repository as a direct attribute.
+
+        Example:
+            db.user.insert(...)
+            db.product.get_all()
+        """
+        if name.startswith("_"):
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
+
+        repositories = getattr(self, "_repositories_by_name", {})
+        name_lower = name.lower()
+        if name_lower in repositories:
+            return repositories[name_lower]
+
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+
+    def table(self, item: Union[type[BaseModel], str]) -> "WPostgreSQL":
+        """Get repository for a specific model or table name."""
+        return self[item]
+
+    def get_repository(self, item: Union[type[BaseModel], str]) -> "WPostgreSQL":
+        """Get repository for a specific model or table name."""
+        return self[item]
 
     def _default_value(self, field: str) -> Any:
         """Get default value for a field when database value is NULL.
@@ -149,6 +310,14 @@ class WPostgreSQL:
             data: Pydantic model instance containing the data to insert.
             user_id: Optional ID of the user performing the insertion for forensic tracking.
         """
+        if getattr(self, "is_multi_table", False):
+            model_cls = type(data)
+            if model_cls in self._repositories:
+                return self._repositories[model_cls].insert(data, user_id=user_id)
+            raise KeyError(
+                f"No registered repository found for model type '{model_cls.__name__}'."
+            )
+
         data_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         if self.forensic:
             data_dict.setdefault(
@@ -521,6 +690,16 @@ class WPostgreSQL:
             data: Model instance containing data to insert.
             user_id: Optional user ID for forensic tracking.
         """
+        if getattr(self, "is_multi_table", False):
+            model_cls = type(data)
+            if model_cls in self._repositories:
+                return await self._repositories[model_cls].insert_async(
+                    data, user_id=user_id
+                )
+            raise KeyError(
+                f"No registered repository found for model type '{model_cls.__name__}'."
+            )
+
         data_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         if self.forensic:
             data_dict.setdefault(
