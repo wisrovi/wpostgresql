@@ -301,7 +301,90 @@ class WPostgreSQL:
                 kwargs[key] = row_dict[key]
             else:
                 kwargs[key] = self._default_value(key)
-        return self.model(**kwargs)
+
+    def _record_ghost_audit(
+        self,
+        cursor: Any,
+        action_type: str,
+        record_id: Optional[Any],
+        data_before: Optional[Any],
+        data_after: Optional[Any],
+        user_id: Optional[int],
+    ) -> None:
+        """Record ghost table audit log entry in _forensic_audit_log if forensic mode is active."""
+        if not getattr(self, "forensic", False):
+            return
+
+        import json
+
+        before_str = (
+            json.dumps(data_before, default=str) if data_before is not None else None
+        )
+        after_str = (
+            json.dumps(data_after, default=str) if data_after is not None else None
+        )
+        uid = user_id if user_id is not None else 1
+        now = datetime.now(timezone.utc)
+
+        query = (
+            "INSERT INTO _forensic_audit_log "
+            "(table_name, action_type, record_id, data_before, data_after, create_by, create_in, status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, 1)"
+        )
+        cursor.execute(
+            query,
+            (
+                self.table_name,
+                action_type,
+                str(record_id) if record_id is not None else None,
+                before_str,
+                after_str,
+                uid,
+                now,
+            ),
+        )
+
+    async def _record_ghost_audit_async(
+        self,
+        cursor: Any,
+        action_type: str,
+        record_id: Optional[Any],
+        data_before: Optional[Any],
+        data_after: Optional[Any],
+        user_id: Optional[int],
+    ) -> None:
+        """Record ghost table audit log entry asynchronously if forensic mode is active."""
+        if not getattr(self, "forensic", False):
+            return
+
+        import json
+
+        before_str = (
+            json.dumps(data_before, default=str) if data_before is not None else None
+        )
+        after_str = (
+            json.dumps(data_after, default=str) if data_after is not None else None
+        )
+        uid = user_id if user_id is not None else 1
+        now = datetime.now(timezone.utc)
+
+        query = (
+            "INSERT INTO _forensic_audit_log "
+            "(table_name, action_type, record_id, data_before, data_after, create_by, create_in, status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, 1)"
+        )
+        await cursor.execute(
+            query,
+            (
+                self.table_name,
+                action_type,
+                str(record_id) if record_id is not None else None,
+                before_str,
+                after_str,
+                uid,
+                now,
+            ),
+        )
 
     def insert(self, data: BaseModel, user_id: Optional[int] = None) -> None:
         """Insert a new record into the database.
@@ -332,9 +415,19 @@ class WPostgreSQL:
         values = tuple(data_dict.values())
 
         query = f"INSERT INTO {self.table_name} ({fields}) VALUES ({placeholders})"
+        rec_id = data_dict.get("id")
         with get_connection(self.db_config) as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, values)
+                if self.forensic:
+                    self._record_ghost_audit(
+                        cursor=cursor,
+                        action_type="INSERT",
+                        record_id=rec_id,
+                        data_before=None,
+                        data_after=data_dict,
+                        user_id=user_id,
+                    )
             conn.commit()
 
     def get_all(self, include_deleted: bool = False) -> list[BaseModel]:
@@ -402,6 +495,9 @@ class WPostgreSQL:
             data: Pydantic model instance containing the new data.
             user_id: Optional ID of the user performing the update for forensic tracking.
         """
+        old_records = self.get_by_field(id=record_id, include_deleted=True)
+        old_data = old_records[0].model_dump() if old_records else None
+
         data_dict = data.model_dump()
         if self.forensic:
             data_dict["update_by"] = user_id if user_id is not None else 1
@@ -414,6 +510,15 @@ class WPostgreSQL:
         with get_connection(self.db_config) as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, values)
+                if self.forensic:
+                    self._record_ghost_audit(
+                        cursor=cursor,
+                        action_type="UPDATE",
+                        record_id=record_id,
+                        data_before=old_data,
+                        data_after=data_dict,
+                        user_id=user_id,
+                    )
             conn.commit()
 
     def delete(
@@ -426,20 +531,35 @@ class WPostgreSQL:
             user_id: Optional ID of the user performing the deletion for forensic tracking.
             hard: If True, performs a physical DELETE FROM query instead of soft-delete (status=99).
         """
+        old_records = self.get_by_field(id=record_id, include_deleted=True)
+        old_data = old_records[0].model_dump() if old_records else None
+
         if self.forensic and not hard:
+            action_type = "SOFT_DELETE"
             query = f"UPDATE {self.table_name} SET status = 99, delete_by = %s, delete_in = %s WHERE id = %s"
-            values = (
-                user_id if user_id is not None else 1,
-                datetime.now(timezone.utc),
-                record_id,
-            )
+            now = datetime.now(timezone.utc)
+            uid = user_id if user_id is not None else 1
+            values = (uid, now, record_id)
+            new_data = dict(old_data) if old_data else {}
+            new_data.update({"status": 99, "delete_by": uid, "delete_in": now})
         else:
+            action_type = "HARD_DELETE"
             query = f"DELETE FROM {self.table_name} WHERE id = %s"
             values = (record_id,)
+            new_data = None
 
         with get_connection(self.db_config) as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, values)
+                if self.forensic:
+                    self._record_ghost_audit(
+                        cursor=cursor,
+                        action_type=action_type,
+                        record_id=record_id,
+                        data_before=old_data,
+                        data_after=new_data,
+                        user_id=user_id,
+                    )
             conn.commit()
 
     def get_paginated(
