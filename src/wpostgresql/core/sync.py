@@ -6,27 +6,54 @@ from wpostgresql.core.connection import get_async_connection, get_connection
 from wpostgresql.types.sql_types import get_sql_type
 
 
+FORENSIC_COLUMNS = {
+    "create_by": "INTEGER DEFAULT 1",
+    "create_in": "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP",
+    "update_by": "INTEGER DEFAULT NULL",
+    "update_in": "TIMESTAMP WITH TIME ZONE DEFAULT NULL",
+    "delete_by": "INTEGER DEFAULT NULL",
+    "delete_in": "TIMESTAMP WITH TIME ZONE DEFAULT NULL",
+    "status": "INTEGER DEFAULT 1",
+}
+
+
 class TableSync:
     """Handles table synchronization between Pydantic models and PostgreSQL (sync)."""
 
-    def __init__(self, model, db_config: dict, pool_config: Optional[dict] = None):
+    def __init__(
+        self,
+        model,
+        db_config: dict,
+        pool_config: Optional[dict] = None,
+        forensic: bool = False,
+    ):
         """Initialize table sync.
 
         Args:
             model: Pydantic BaseModel class.
             db_config: PostgreSQL connection configuration.
             pool_config: Optional pool configuration dictionary.
+            forensic: Whether forensic audit columns are enabled.
         """
         self.model = model
         self.db_config = db_config
         self.pool_config = pool_config
+        self.forensic = forensic
         self.table_name = getattr(model, "__tablename__", model.__name__.lower())
 
     def create_if_not_exists(self):
         """Create the table if it doesn't exist."""
-        fields = ", ".join(
-            f"{field} {get_sql_type(typ)}" for field, typ in self.model.model_fields.items()
-        )
+        field_defs = [
+            f"{field} {get_sql_type(typ)}"
+            for field, typ in self.model.model_fields.items()
+        ]
+        if self.forensic:
+            model_fields = set(self.model.model_fields.keys())
+            for f_name, f_sql in FORENSIC_COLUMNS.items():
+                if f_name not in model_fields:
+                    field_defs.append(f"{f_name} {f_sql}")
+
+        fields = ", ".join(field_defs)
         query = f"CREATE TABLE IF NOT EXISTS {self.table_name} ({fields})"
         with get_connection(self.db_config) as conn:
             with conn.cursor() as cursor:
@@ -35,21 +62,31 @@ class TableSync:
 
     def sync_with_model(self):
         """Sync the table with the Pydantic model, adding new columns if necessary."""
-        query = "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
+        query = (
+            "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
+        )
         with get_connection(self.db_config) as conn, conn.cursor() as cursor:
             cursor.execute(query, (self.table_name,))
             rows = cursor.fetchall()
             existing_columns = {row[0] for row in rows}
 
         model_fields = set(self.model.model_fields.keys())
-        new_fields = model_fields - existing_columns
+        if self.forensic:
+            expected_fields = model_fields | set(FORENSIC_COLUMNS.keys())
+        else:
+            expected_fields = model_fields
+
+        new_fields = expected_fields - existing_columns
 
         if new_fields:
             with get_connection(self.db_config) as conn:
                 with conn.cursor() as cursor:
                     for field in new_fields:
-                        field_type = get_sql_type(self.model.model_fields[field])
-                        alter_query = f"ALTER TABLE {self.table_name} ADD COLUMN {field} {field_type} DEFAULT NULL"
+                        if field in FORENSIC_COLUMNS:
+                            field_type = FORENSIC_COLUMNS[field]
+                        else:
+                            field_type = f"{get_sql_type(self.model.model_fields[field])} DEFAULT NULL"
+                        alter_query = f"ALTER TABLE {self.table_name} ADD COLUMN {field} {field_type}"
                         cursor.execute(alter_query)
                 conn.commit()
 
@@ -135,17 +172,25 @@ class TableSync:
 class AsyncTableSync:
     """Handles table synchronization between Pydantic models and PostgreSQL (async)."""
 
-    def __init__(self, model, db_config: dict, pool_config: Optional[dict] = None):
+    def __init__(
+        self,
+        model,
+        db_config: dict,
+        pool_config: Optional[dict] = None,
+        forensic: bool = False,
+    ):
         """Initialize async table sync.
 
         Args:
             model: Pydantic BaseModel class.
             db_config: PostgreSQL connection configuration.
             pool_config: Optional pool configuration dictionary.
+            forensic: Whether forensic audit columns are enabled.
         """
         self.model = model
         self.db_config = db_config
         self.pool_config = pool_config
+        self.forensic = forensic
         self.table_name = getattr(model, "__tablename__", model.__name__.lower())
 
     async def _get_async_conn(self):
@@ -158,9 +203,17 @@ class AsyncTableSync:
 
     async def create_if_not_exists_async(self):
         """Create the table if it doesn't exist (async)."""
-        fields = ", ".join(
-            f"{field} {get_sql_type(typ)}" for field, typ in self.model.model_fields.items()
-        )
+        field_defs = [
+            f"{field} {get_sql_type(typ)}"
+            for field, typ in self.model.model_fields.items()
+        ]
+        if self.forensic:
+            model_fields = set(self.model.model_fields.keys())
+            for f_name, f_sql in FORENSIC_COLUMNS.items():
+                if f_name not in model_fields:
+                    field_defs.append(f"{f_name} {f_sql}")
+
+        fields = ", ".join(field_defs)
         query = f"CREATE TABLE IF NOT EXISTS {self.table_name} ({fields})"
         conn = await get_async_connection(self.db_config)
         async with conn:
@@ -170,7 +223,9 @@ class AsyncTableSync:
 
     async def sync_with_model_async(self):
         """Sync the table with the Pydantic model, adding new columns if necessary (async)."""
-        query = "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
+        query = (
+            "SELECT column_name FROM information_schema.columns WHERE table_name = %s"
+        )
         conn = await get_async_connection(self.db_config)
         async with conn, conn.cursor() as cursor:
             await cursor.execute(query, (self.table_name,))
@@ -178,15 +233,23 @@ class AsyncTableSync:
             existing_columns = {row[0] for row in rows}
 
         model_fields = set(self.model.model_fields.keys())
-        new_fields = model_fields - existing_columns
+        if self.forensic:
+            expected_fields = model_fields | set(FORENSIC_COLUMNS.keys())
+        else:
+            expected_fields = model_fields
+
+        new_fields = expected_fields - existing_columns
 
         if new_fields:
             conn = await get_async_connection(self.db_config)
             async with conn:
                 async with conn.cursor() as cursor:
                     for field in new_fields:
-                        field_type = get_sql_type(self.model.model_fields[field])
-                        alter_query = f"ALTER TABLE {self.table_name} ADD COLUMN {field} {field_type} DEFAULT NULL"
+                        if field in FORENSIC_COLUMNS:
+                            field_type = FORENSIC_COLUMNS[field]
+                        else:
+                            field_type = f"{get_sql_type(self.model.model_fields[field])} DEFAULT NULL"
+                        alter_query = f"ALTER TABLE {self.table_name} ADD COLUMN {field} {field_type}"
                         await cursor.execute(alter_query)
                 await conn.commit()
 
@@ -272,4 +335,7 @@ class AsyncTableSync:
         conn = await get_async_connection(self.db_config)
         async with conn, conn.cursor() as cursor:
             await cursor.execute(query, (self.table_name,))
-            return [{"name": row[0], "definition": row[1]} for row in await cursor.fetchall()]
+            return [
+                {"name": row[0], "definition": row[1]}
+                for row in await cursor.fetchall()
+            ]
