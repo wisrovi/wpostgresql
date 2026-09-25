@@ -109,6 +109,9 @@ graph TD
 | `12_raw_sql/` | Raw SQL execution |
 | `13_soft_delete/` | Soft delete pattern |
 | `14_relationships/` | Table relationships |
+| `15_backups/` | SQLite backup via wsqlite |
+| `16_forensic_fields/` | Automatic audit forensic tracking |
+| `17_multi_table/` | Multi-table management & auto-routing |
 
 ---
 
