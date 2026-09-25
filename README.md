@@ -43,6 +43,7 @@
 - **CLI Tool** — Command-line interface for database management
 - **Code Quality** — Pylint score > 9.5, Bandit security checks passing, mypy type checking
 - **Pagination** — LIMIT/OFFSET and page-number based pagination
+- **Multi-Table Management** — Manage multiple database tables seamlessly from a single `WPostgreSQL([User, Product, Order])` instance with `db[User]` indexing, `db.product` attribute access, and auto-routing
 - **SQLite Backup** — Export PostgreSQL table data directly to SQLite database files using `wsqlite`
 
 ## Technical Stack
