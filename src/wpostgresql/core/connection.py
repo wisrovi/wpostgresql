@@ -1,9 +1,11 @@
 """Connection management for PostgreSQL with automatic connection pooling."""
 
+import asyncio
 import logging
 import threading
 from collections.abc import Generator
 from contextlib import contextmanager, suppress
+
 from typing import Any, Optional
 
 import psycopg
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 _global_pool_lock = threading.Lock()
 _global_sync_pools: dict[str, ConnectionPool] = {}
 _global_async_pools: dict[str, AsyncConnectionPool] = {}
-DEFAULT_POOL_CONFIG = {"min_size": 5, "max_size": 50}
+DEFAULT_POOL_CONFIG = {"min_size": 1, "max_size": 10}
 
 
 def _build_conninfo(db_config: dict) -> str:
@@ -151,10 +153,11 @@ async def close_global_pools_async() -> None:
         _global_sync_pools.clear()
 
         for pool in list(_global_async_pools.values()):
-            with suppress(Exception):
-                await pool.close()
+            with suppress(Exception, asyncio.CancelledError):
+                await pool.close(timeout=1.0)
         _global_async_pools.clear()
         logger.info("All global connection pools closed asynchronously")
+
 
 
 class _PooledConnection:
