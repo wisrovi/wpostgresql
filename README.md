@@ -40,7 +40,8 @@
 - **Connection Pooling** — Built-in connection pooling for both sync and async operations
 - **Transaction Management** — Robust transaction support with automatic rollback
 - **Bulk Operations** — Efficient bulk insert, update, and delete operations
-- **SQLite Backup** — Export PostgreSQL table data directly to SQLite database files using `wsqlite`
+- **Database Views** — Define PostgreSQL Views declaratively with `@view(name=..., depends_on=..., query=...)` with read-only ORM querying
+- **Bidirectional SQLite Backup & Restore** — Export PostgreSQL tables to SQLite files (`backup_to_sqlite`) and restore SQLite backups back into PostgreSQL (`restore_from_sqlite`) using `wsqlite`
 
 ## Technical Stack
 
