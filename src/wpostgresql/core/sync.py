@@ -18,8 +18,21 @@ FORENSIC_COLUMNS = {
 
 
 def get_model_dependencies(model: type) -> set[str]:
-    """Extract table name dependencies from foreign key fields in a model."""
+    """Extract table name dependencies from foreign key fields and __depends_on__ in a model."""
     deps = set()
+    # Check explicit view dependencies from @view(depends_on=[...])
+    view_deps = getattr(model, "__depends_on__", None)
+    if view_deps:
+        for dep in view_deps:
+            if isinstance(dep, str):
+                deps.add(dep.lower())
+            elif hasattr(dep, "__view_name__"):
+                deps.add(dep.__view_name__.lower())
+            elif hasattr(dep, "__tablename__"):
+                deps.add(dep.__tablename__.lower())
+            elif hasattr(dep, "__name__"):
+                deps.add(dep.__name__.lower())
+
     for field_info in model.model_fields.values():
         fk = get_field_foreign_key(field_info)
         if fk is not None:
