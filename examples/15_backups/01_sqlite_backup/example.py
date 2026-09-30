@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field
 from wpostgresql import WPostgreSQL
 
 db_config = {
-    "dbname": "mcp",
-    "user": "myuser",
-    "password": "mypassword",
+    "dbname": "wpostgresql",
+    "user": "postgres",
+    "password": "postgres",
     "host": "localhost",
     "port": 5432,
 }
