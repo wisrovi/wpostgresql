@@ -387,16 +387,17 @@ Contributions are welcome. Please read our [Contributing Guide](CONTRIBUTING.md)
 
 MIT License — see [LICENSE](LICENSE) file for details.
 
-## Author
-
-**William Rodríguez** - [wisrovi](mailto:wisrovi.rodriguez@gmail.com)
-
-Technology Evangelist & Software Architect
-
-LinkedIn: [William Rodríguez](https://www.linkedin.com/in/william-rodriguez-villamizar-572302207)
-
 ---
 
-<p align="center">
-    Built with ❤️ for the Python community
-</p>
+## 👤 Autor & Afiliación Oficial
+
+* **William Steve Rodriguez Villamizar (Wisrovi)**
+* **Cargo:** Principal AI Engineer & Applied AI Solutions Architect | Scientific Researcher
+* 📧 **Email:** [wisrovi.rodriguez@gmail.com](mailto:wisrovi.rodriguez@gmail.com)
+* 🌐 **Portal Oficial:** [wisrovi.dev](https://wisrovi.dev)
+* 💼 **LinkedIn:** [wisrovi-rodriguez](https://www.linkedin.com/in/wisrovi-rodriguez/)
+* 🆔 **ORCID:** [0009-0005-0710-1861](https://orcid.org/0009-0005-0710-1861)
+* 📦 **PyPI:** [pypi.org/user/wisrovi/](https://pypi.org/user/wisrovi/)
+* 🐙 **GitHub:** [@wisrovi](https://github.com/wisrovi)
+
+
