@@ -28,6 +28,8 @@ from wpostgresql.core.backup import (
     backup_to_sqlite_async,
     export_to_sql_script,
     export_to_sql_script_async,
+    restore_from_sqlite,
+    restore_from_sqlite_async,
 )
 from wpostgresql.core.connection import (
     DEFAULT_POOL_CONFIG,
@@ -56,7 +58,7 @@ from wpostgresql.exceptions import (
 from wpostgresql.types import ForeignType, Foreign_type
 from wpostgresql.views import view
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 __all__ = [
     "WPostgreSQL",
@@ -68,6 +70,8 @@ __all__ = [
     "backup_to_sqlite_async",
     "backup_db_to_sqlite",
     "backup_db_to_sqlite_async",
+    "restore_from_sqlite",
+    "restore_from_sqlite_async",
     "export_to_sql_script",
     "export_to_sql_script_async",
     "QueryBuilder",
