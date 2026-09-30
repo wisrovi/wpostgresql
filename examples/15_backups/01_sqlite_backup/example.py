@@ -61,6 +61,11 @@ async def run_async_backup():
 
 
 if __name__ == "__main__":
+    from wpostgresql import close_global_pools, close_global_pools_async
+
     run_sync_backup()
     asyncio.run(run_async_backup())
+    asyncio.run(close_global_pools_async())
+    close_global_pools()
+
 
