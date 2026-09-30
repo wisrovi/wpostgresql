@@ -9,7 +9,7 @@ This example demonstrates:
 
 from typing import Optional
 from pydantic import BaseModel
-from wpostgresql import WPostgreSQL, ForensicModel
+from wpostgresql import WPostgreSQL, ForensicModel, get_transaction
 
 # Database connection configuration
 db_config = {
@@ -24,9 +24,11 @@ db_config = {
 class User(ForensicModel):
     """User account model with forensic auditing enabled."""
 
+    __tablename__ = "users"
     id: int
     name: str
     email: str
+
 
 
 class Product(BaseModel):
@@ -40,10 +42,12 @@ class Product(BaseModel):
 class Order(BaseModel):
     """Customer purchase order model."""
 
+    __tablename__ = "orders"
     id: int
     user_id: int
     product_id: int
     total_amount: float
+
 
 
 def main():
@@ -84,11 +88,12 @@ def main():
 
     # 4. Multi-table Transaction Example
     print("\n--- Executing Multi-Table Transaction ---")
-    with db.get_transaction(db_config) as txn:
+    with get_transaction(db_config) as txn:
         # Transactions work seamlessly across all repositories sharing the db_config pool
         db[User].insert(User(id=2, name="Alice Smith", email="alice@example.com"))
         db.product.insert(Product(id=102, title="Cloud Storage Subscription", price=49.99))
         txn.commit()
+
 
     print("Transaction committed successfully!")
 
