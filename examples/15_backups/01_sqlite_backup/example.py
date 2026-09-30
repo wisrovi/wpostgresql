@@ -9,7 +9,7 @@ db_config = {
     "dbname": "mcp",
     "user": "myuser",
     "password": "mypassword",
-    "host": "192.168.1.68",
+    "host": "localhost",
     "port": 5432,
 }
 
