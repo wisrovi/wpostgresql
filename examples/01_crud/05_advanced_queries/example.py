@@ -45,8 +45,8 @@ query, values = qb.build_select()
 print("Query:", query)
 print("Values:", values)
 
-results = db.get_by_field(age__gt=25, city="NYC")
-print("Filtered results:", results)
+results = db.get_by_field(city="NYC")
+print("Filtered results (city=NYC):", results)
 
 # Get with ordering
 all_people = db.get_paginated(order_by="name", order_desc=False)
