@@ -1,18 +1,21 @@
 # Example 20: Database Views (`examples/20_database_views`)
 
-Este ejemplo demuestra cómo definir y utilizar **Database Views (Vistas de Base de Datos)** en PostgreSQL utilizando modelos de **Pydantic** y **WPostgreSQL**.
+Este ejemplo demuestra cómo definir y utilizar **Database Views (Vistas de Base de Datos)** en PostgreSQL utilizando el decorador pitónico `@view` de **WPostgreSQL** y modelos de **Pydantic**.
 
 ---
 
 ## 🚀 Características Clave
 
-1. **Definición Declarativa de Vistas**:
-   Al agregar los atributos `__view_name__` y `__view_query__` a un modelo de Pydantic, WPostgreSQL creará o actualizará automáticamente la vista mediante `CREATE OR REPLACE VIEW` durante la inicialización del esquema.
+1. **Decorador Pitónico `@view`**:
+   Decorador declarativo que permite especificar el nombre de la vista en PostgreSQL, sus modelos dependientes (`depends_on`) para la creación topológica del esquema, y la consulta SQL (`query`).
 
-2. **Consultas ORM Tipadas**:
+2. **Ordenación Topológica por Dependencias (`depends_on`)**:
+   `depends_on=[Customer, Invoice]` garantiza que WPostgreSQL cree primero las tablas base antes de intentar ejecutar `CREATE OR REPLACE VIEW`.
+
+3. **Consultas ORM Tipadas**:
    Puedes consultar vistas como cualquier otra tabla con `.get_all()`, `.filter()`, `.get()`, etc., mapeando los resultados directamente a instancias del modelo de Pydantic.
 
-3. **Protección de Solo Lectura (Read-Only)**:
+4. **Protección de Solo Lectura (Read-Only)**:
    WPostgreSQL bloquea las operaciones de escritura (`insert`, `update`, `delete`) sobre los repositorios de vistas lanzando un `OperationError`.
 
 ---
@@ -30,7 +33,7 @@ Este ejemplo demuestra cómo definir y utilizar **Database Views (Vistas de Base
 
 ```python
 from pydantic import BaseModel, Field
-from wpostgresql import ForeignType, WPostgreSQL
+from wpostgresql import ForeignType, WPostgreSQL, view
 from wpostgresql.exceptions import OperationError
 
 DB_CONFIG = {
@@ -54,9 +57,10 @@ class Invoice(BaseModel):
     )
     total_amount: float
 
-class CustomerInvoiceSummaryView(BaseModel):
-    __view_name__ = "customer_invoice_summary"
-    __view_query__ = """
+@view(
+    name="customer_invoice_summary",
+    depends_on=[Customer, Invoice],
+    query="""
         SELECT 
             c.id AS customer_id,
             c.name AS customer_name,
@@ -67,17 +71,18 @@ class CustomerInvoiceSummaryView(BaseModel):
         LEFT JOIN invoice i ON c.id = i.customer_id
         GROUP BY c.id, c.name, c.email
     """
-
+)
+class CustomerInvoiceSummary(BaseModel):
     customer_id: int
     customer_name: str
     customer_email: str
     total_invoices: int
     total_spent: float
 
-db = WPostgreSQL(models=[Customer, Invoice, CustomerInvoiceSummaryView], db_config=DB_CONFIG)
+db = WPostgreSQL(models=[Customer, Invoice, CustomerInvoiceSummary], db_config=DB_CONFIG)
 
 # Consultar vista
-summaries = db[CustomerInvoiceSummaryView].get_all()
+summaries = db[CustomerInvoiceSummary].get_all()
 ```
 
 ---
