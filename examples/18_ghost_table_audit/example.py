@@ -3,12 +3,12 @@
 This example demonstrates:
 1. Automatic creation of global _forensic_audit_log table when forensic=True.
 2. Automatic change tracking across INSERT, UPDATE, SOFT_DELETE, and HARD_DELETE.
-3. Querying the audit trail to inspect before/after JSON snapshots and user tracking.
+3. Querying the audit trail using db.get_ghost_audit_log() without raw SQL or get_connection.
 """
 
 from typing import Optional
 from pydantic import BaseModel
-from wpostgresql import WPostgreSQL, ForensicModel, get_connection
+from wpostgresql import WPostgreSQL, ForensicModel
 
 db_config = {
     "dbname": "wpostgresql",
@@ -27,22 +27,17 @@ class BankAccount(ForensicModel):
     balance: float
 
 
-def inspect_ghost_audit_log():
-    """Fetch and print recorded entries from global _forensic_audit_log ghost table."""
-    with get_connection(db_config) as conn, conn.cursor() as cursor:
-        cursor.execute(
-            "SELECT id, table_name, action_type, record_id, data_before, data_after, create_by, create_in "
-            "FROM _forensic_audit_log ORDER BY id ASC"
-        )
-        rows = cursor.fetchall()
-        print(f"\n--- Global Audit Log (_forensic_audit_log) [{len(rows)} entries] ---")
-        for row in rows:
-            print(f"Audit #{row[0]} | Action: {row[2]} on [{row[1]}] ID={row[3]} by User={row[6]}")
-            if row[4]:
-                print(f"   BEFORE: {row[4]}")
-            if row[5]:
-                print(f"   AFTER : {row[5]}")
-            print("-" * 60)
+def inspect_ghost_audit_log(db: WPostgreSQL):
+    """Fetch and print recorded entries from global _forensic_audit_log ghost table via ORM API."""
+    rows = db.get_ghost_audit_log()
+    print(f"\n--- Global Audit Log (_forensic_audit_log) [{len(rows)} entries] ---")
+    for row in rows:
+        print(f"Audit #{row['id']} | Action: {row['action_type']} on [{row['table_name']}] ID={row['record_id']} by User={row['create_by']}")
+        if row["data_before"]:
+            print(f"   BEFORE: {row['data_before']}")
+        if row["data_after"]:
+            print(f"   AFTER : {row['data_after']}")
+        print("-" * 60)
 
 
 def main():
@@ -66,8 +61,8 @@ def main():
     print("\n3. Soft Deleting Account (User ID = 999)...")
     db.delete(1, user_id=999, hard=False)
 
-    # 5. Inspect recorded audit trail
-    inspect_ghost_audit_log()
+    # 5. Inspect recorded audit trail via ORM API
+    inspect_ghost_audit_log(db)
 
 
 if __name__ == "__main__":
