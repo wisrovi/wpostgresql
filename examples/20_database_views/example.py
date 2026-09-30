@@ -1,13 +1,13 @@
-"""Example 20: Database Views with WPostgreSQL.
+"""Example 20: Database Views with WPostgreSQL using the @view decorator.
 
 Demonstrates how to define multi-tables with foreign key relationships,
-define a Pydantic model for a PostgreSQL Database View using `__view_query__`,
+define a Database View elegantly using the `@view(name=..., depends_on=..., query=...)` decorator,
 and execute type-safe ORM read queries on the view.
 """
 
 from pydantic import BaseModel, Field
 
-from wpostgresql import ForeignType, WPostgreSQL
+from wpostgresql import ForeignType, WPostgreSQL, view
 from wpostgresql.exceptions import OperationError
 
 # Database configuration
@@ -20,7 +20,7 @@ DB_CONFIG = {
 }
 
 
-# 1. Define Base Tables
+# 1. Base Domain Tables
 class Customer(BaseModel):
     """Customer entity with auto-generated id."""
 
@@ -42,17 +42,12 @@ class Invoice(BaseModel):
     invoice_status: str = Field(default="PAID", description="Invoice payment status")
 
 
-# 2. Define Database View using Pydantic Model
-class CustomerInvoiceSummaryView(BaseModel):
-    """Pydantic model representing a Database View.
-
-    `__view_query__` specifies the SQL query used by WPostgreSQL to execute
-    `CREATE OR REPLACE VIEW customer_invoice_summary AS ...` during schema initialization.
-    """
-
-    __view_name__ = "customer_invoice_summary"
-    __view_query__ = """
-        SELECT
+# 2. Database View defined with the elegant @view decorator
+@view(
+    name="customer_invoice_summary",
+    depends_on=[Customer, Invoice],  # Defines parent dependencies for topological DDL creation
+    query="""
+        SELECT 
             c.id AS customer_id,
             c.name AS customer_name,
             c.email AS customer_email,
@@ -61,7 +56,10 @@ class CustomerInvoiceSummaryView(BaseModel):
         FROM customer c
         LEFT JOIN invoice i ON c.id = i.customer_id
         GROUP BY c.id, c.name, c.email
-    """
+    """,
+)
+class CustomerInvoiceSummary(BaseModel):
+    """Pydantic model representing a Database View."""
 
     customer_id: int
     customer_name: str
@@ -72,12 +70,12 @@ class CustomerInvoiceSummaryView(BaseModel):
 
 def main():
     print("=" * 80)
-    print("🚀 WPostgreSQL Example 20: Database Views")
+    print("🚀 WPostgreSQL Example 20: Database Views (@view Decorator)")
     print("=" * 80)
 
     # Initialize WPostgreSQL multi-table manager including the View model
     db = WPostgreSQL(
-        models=[Customer, Invoice, CustomerInvoiceSummaryView],
+        models=[Customer, Invoice, CustomerInvoiceSummary],
         db_config=DB_CONFIG,
     )
 
@@ -92,8 +90,8 @@ def main():
     # Add invoice for Bob
     db[Invoice].insert(Invoice(customer_id=bob.id, total_amount=300.00, invoice_status="PENDING"))
 
-    print("\n2. Querying Database View (CustomerInvoiceSummaryView)...")
-    summaries = db[CustomerInvoiceSummaryView].get_all()
+    print("\n2. Querying Database View (CustomerInvoiceSummary)...")
+    summaries = db[CustomerInvoiceSummary].get_all()
     for summary in summaries:
         print(
             f"  • Customer #{summary.customer_id} ({summary.customer_name}): "
@@ -101,21 +99,21 @@ def main():
         )
 
     print("\n3. Filtering Database View by criteria...")
-    high_spenders = db[CustomerInvoiceSummaryView].filter(customer_name="Alice Smith")
+    high_spenders = db[CustomerInvoiceSummary].filter(customer_name="Alice Smith")
     print(f"  • Found {len(high_spenders)} view record(s) matching 'Alice Smith':")
     for record in high_spenders:
         print(f"    - Email: {record.customer_email}, Total Spent: ${record.total_spent:.2f}")
 
     print("\n4. Verifying read-only restriction on Database Views...")
     try:
-        dummy_view_item = CustomerInvoiceSummaryView(
+        dummy_view_item = CustomerInvoiceSummary(
             customer_id=999,
             customer_name="Fake",
             customer_email="fake@example.com",
             total_invoices=0,
             total_spent=0.0,
         )
-        db[CustomerInvoiceSummaryView].insert(dummy_view_item)
+        db[CustomerInvoiceSummary].insert(dummy_view_item)
     except OperationError as err:
         print(f"  ✓ Expected OperationError caught successfully: {err}")
 
