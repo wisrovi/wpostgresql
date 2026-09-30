@@ -54,6 +54,7 @@ from wpostgresql.exceptions import (
     WPostgreSQLError,
 )
 from wpostgresql.types import ForeignType, Foreign_type
+from wpostgresql.views import view
 
 __version__ = "1.4.0"
 
@@ -62,6 +63,7 @@ __all__ = [
     "ForensicModel",
     "ForeignType",
     "Foreign_type",
+    "view",
     "backup_to_sqlite",
     "backup_to_sqlite_async",
     "backup_db_to_sqlite",
