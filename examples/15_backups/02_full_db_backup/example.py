@@ -12,12 +12,13 @@ from wpostgresql import (
 )
 
 db_config = {
-    "dbname": "mcp",
-    "user": "myuser",
-    "password": "mypassword",
-    "host": "192.168.1.68",
+    "dbname": "wpostgresql",
+    "user": "postgres",
+    "password": "postgres",
+    "host": "localhost",
     "port": 5432,
 }
+
 
 
 class User(BaseModel):
