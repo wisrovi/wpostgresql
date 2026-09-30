@@ -1,6 +1,6 @@
 """Database View decorator and utilities for WPostgreSQL."""
 
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional, Union
 
 
 def view(
@@ -39,9 +39,9 @@ def view(
             cls, "depends_on", getattr(cls, "__depends_on__", [])
         )
 
-        setattr(cls, "__view_name__", v_name)
-        setattr(cls, "__view_query__", v_query)
-        setattr(cls, "__depends_on__", v_deps)
+        cls.__view_name__ = v_name
+        cls.__view_query__ = v_query
+        cls.__depends_on__ = v_deps
         return cls
 
     if callable(name) and not isinstance(name, str):
