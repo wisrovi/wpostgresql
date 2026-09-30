@@ -15,8 +15,8 @@ from wpostgresql.core.connection import (
     get_connection,
     get_transaction,
 )
-from wpostgresql.core.sync import TableSync
-from wpostgresql.exceptions import SQLInjectionError, TransactionError
+from wpostgresql.core.sync import TableSync, sort_models_by_dependencies
+from wpostgresql.exceptions import OperationError, SQLInjectionError, TransactionError
 
 logger = logging.getLogger(__name__)
 
@@ -127,13 +127,16 @@ class WPostgreSQL:
             self.table_name = None
             self.forensic = False
             self._sync = None
-            for m in resolved_models:
+            sorted_models = sort_models_by_dependencies(resolved_models)
+            for m in sorted_models:
                 self.register_model(m)
         elif resolved_model is not None:
             self.is_multi_table = False
             self.model = resolved_model
             self.table_name = getattr(
-                resolved_model, "__tablename__", resolved_model.__name__.lower()
+                resolved_model,
+                "__view_name__",
+                getattr(resolved_model, "__tablename__", resolved_model.__name__.lower()),
             )
 
             if forensic is None:
@@ -195,19 +198,27 @@ class WPostgreSQL:
         Returns:
             list[WPostgreSQL]: Registered repository instances.
         """
-        registered = []
+        flattened = []
         for item in models:
             if isinstance(item, (list, tuple)):
-                for sub_m in item:
-                    registered.append(self.register_model(sub_m))
+                flattened.extend(item)
             elif isinstance(item, type) and issubclass(item, BaseModel):
-                registered.append(self.register_model(item))
+                flattened.append(item)
+
+        sorted_models = sort_models_by_dependencies(flattened)
+        registered = []
+        for m in sorted_models:
+            registered.append(self.register_model(m))
         return registered
 
     def _register_repository_references(
         self, model: type[BaseModel], repo: "WPostgreSQL"
     ) -> None:
-        table_name = getattr(model, "__tablename__", model.__name__.lower())
+        table_name = getattr(
+            model,
+            "__view_name__",
+            getattr(model, "__tablename__", model.__name__.lower()),
+        )
         model_name = model.__name__.lower()
 
         self._repositories[model] = repo
@@ -301,6 +312,14 @@ class WPostgreSQL:
                 kwargs[key] = row_dict[key]
             else:
                 kwargs[key] = self._default_value(key)
+        instance = self.model(**kwargs)
+        if "id" in row_dict and "id" not in self.model.model_fields:
+            object.__setattr__(instance, "id", row_dict["id"])
+            try:
+                instance.__dict__["id"] = row_dict["id"]
+            except Exception:
+                pass
+        return instance
 
     def _record_ghost_audit(
         self,
@@ -386,13 +405,58 @@ class WPostgreSQL:
             ),
         )
 
-    def insert(self, data: BaseModel, user_id: Optional[int] = None) -> None:
-        """Insert a new record into the database.
+    def get_ghost_audit_log(
+        self, table_name: Optional[str] = None, record_id: Optional[Any] = None
+    ) -> list[dict]:
+        """Fetch recorded entries from the global forensic audit log ghost table (_forensic_audit_log).
 
         Args:
-            data: Pydantic model instance containing the data to insert.
-            user_id: Optional ID of the user performing the insertion for forensic tracking.
+            table_name: Optional filter by table name. Defaults to self.table_name if single-table mode.
+            record_id: Optional filter by record ID.
+
+        Returns:
+            list[dict]: List of audit log records.
         """
+        target_table = table_name or getattr(self, "table_name", None)
+        conditions = []
+        values = []
+
+        if target_table:
+            conditions.append("table_name = %s")
+            values.append(target_table)
+        if record_id is not None:
+            conditions.append("record_id = %s")
+            values.append(str(record_id))
+
+        where_clause = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+        query = (
+            f"SELECT id, table_name, action_type, record_id, data_before, data_after, "
+            f"create_by, create_in, status FROM _forensic_audit_log{where_clause} ORDER BY id ASC"
+        )
+        with get_connection(self.db_config) as conn, conn.cursor() as cursor:
+            cursor.execute(query, tuple(values))
+            rows = cursor.fetchall()
+
+        return [
+            {
+                "id": r[0],
+                "table_name": r[1],
+                "action_type": r[2],
+                "record_id": r[3],
+                "data_before": r[4],
+                "data_after": r[5],
+                "create_by": r[6],
+                "create_in": r[7],
+                "status": r[8],
+            }
+            for r in rows
+        ]
+
+    def insert(self, data: BaseModel, user_id: Optional[int] = None) -> BaseModel:
+        """Insert a new record into the database."""
+        if getattr(self.model, "__view_query__", None):
+            raise OperationError("Database Views are read-only and do not support insert operations.")
+
         if getattr(self, "is_multi_table", False):
             model_cls = type(data)
             if model_cls in self._repositories:
@@ -403,10 +467,13 @@ class WPostgreSQL:
 
         data_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         if self.forensic:
-            data_dict.setdefault(
-                "create_by",
-                user_id if user_id is not None else getattr(data, "create_by", 1) or 1,
-            )
+            if user_id is not None:
+                data_dict["create_by"] = user_id
+            else:
+                data_dict.setdefault(
+                    "create_by",
+                    getattr(data, "create_by", 1) or 1,
+                )
             data_dict.setdefault("create_in", datetime.now(timezone.utc))
             data_dict.setdefault("status", getattr(data, "status", 1) or 1)
 
@@ -414,11 +481,15 @@ class WPostgreSQL:
         placeholders = ", ".join(["%s"] * len(data_dict))
         values = tuple(data_dict.values())
 
-        query = f"INSERT INTO {self.table_name} ({fields}) VALUES ({placeholders})"
-        rec_id = data_dict.get("id")
+        query = f"INSERT INTO {self.table_name} ({fields}) VALUES ({placeholders}) RETURNING id"
+        inserted_id = None
         with get_connection(self.db_config) as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, values)
+                row = cursor.fetchone()
+                if row:
+                    inserted_id = row[0]
+                rec_id = data_dict.get("id", inserted_id)
                 if self.forensic:
                     self._record_ghost_audit(
                         cursor=cursor,
@@ -429,6 +500,27 @@ class WPostgreSQL:
                         user_id=user_id,
                     )
             conn.commit()
+
+        if inserted_id is not None:
+            object.__setattr__(data, "id", inserted_id)
+            try:
+                data.__dict__["id"] = inserted_id
+            except Exception:
+                pass
+        return data
+
+    def get(self, record_id: Any, include_deleted: bool = False) -> Optional[BaseModel]:
+        """Get a single record by primary key id.
+
+        Args:
+            record_id: Primary key ID value.
+            include_deleted: If True, includes soft-deleted records in forensic mode.
+
+        Returns:
+            Optional[BaseModel]: Matching model instance if found, None otherwise.
+        """
+        results = self.get_by_field(include_deleted=include_deleted, id=record_id)
+        return results[0] if results else None
 
     def get_all(self, include_deleted: bool = False) -> list[BaseModel]:
         """Get all records from the table.
@@ -485,16 +577,16 @@ class WPostgreSQL:
 
         return [self._map_row_to_model(colnames, row) for row in rows]
 
+    def filter(self, include_deleted: bool = False, **filters) -> list[BaseModel]:
+        """Alias for get_by_field to filter records by field values."""
+        return self.get_by_field(include_deleted=include_deleted, **filters)
+
     def update(
         self, record_id: int, data: BaseModel, user_id: Optional[int] = None
     ) -> None:
-        """Update a record in the database.
-
-        Args:
-            record_id: The ID of the record to update.
-            data: Pydantic model instance containing the new data.
-            user_id: Optional ID of the user performing the update for forensic tracking.
-        """
+        """Update a record in the database."""
+        if getattr(self.model, "__view_query__", None):
+            raise OperationError("Database Views are read-only and do not support update operations.")
         old_records = self.get_by_field(id=record_id, include_deleted=True)
         old_data = old_records[0].model_dump() if old_records else None
 
@@ -524,13 +616,9 @@ class WPostgreSQL:
     def delete(
         self, record_id: int, user_id: Optional[int] = None, hard: bool = False
     ) -> None:
-        """Delete a record from the database by its ID.
-
-        Args:
-            record_id: The ID of the record to remove.
-            user_id: Optional ID of the user performing the deletion for forensic tracking.
-            hard: If True, performs a physical DELETE FROM query instead of soft-delete (status=99).
-        """
+        """Delete a record from the database by its ID."""
+        if getattr(self.model, "__view_query__", None):
+            raise OperationError("Database Views are read-only and do not support delete operations.")
         old_records = self.get_by_field(id=record_id, include_deleted=True)
         old_data = old_records[0].model_dump() if old_records else None
 
@@ -642,6 +730,62 @@ class WPostgreSQL:
             cursor.execute(query)
             result = cursor.fetchone()
         return result[0] if result else 0
+
+    def aggregate(
+        self, field: str, operation: str, group_by: Optional[str] = None, include_deleted: bool = False
+    ) -> Any:
+        """Execute aggregation (COUNT, SUM, AVG, MIN, MAX) over repository table.
+
+        Args:
+            field: Column name to aggregate or '*'.
+            operation: Aggregation function (COUNT, SUM, AVG, MIN, MAX).
+            group_by: Optional column name for GROUP BY clause.
+            include_deleted: Whether to include soft-deleted records in forensic mode.
+
+        Returns:
+            Single aggregation result or list of dicts if group_by is specified.
+        """
+        validate_identifier(self.table_name)
+        op_upper = operation.upper()
+        if op_upper not in {"COUNT", "SUM", "AVG", "MIN", "MAX"}:
+            raise ValueError(f"Invalid aggregation operation: {operation}")
+
+        if field != "*":
+            validate_identifier(field)
+
+        where_clause = (
+            " WHERE status != 99" if (self.forensic and not include_deleted) else ""
+        )
+
+        if group_by:
+            validate_identifier(group_by)
+            query = f"SELECT {group_by}, {op_upper}({field}) as result FROM {self.table_name}{where_clause} GROUP BY {group_by}"
+            with get_connection(self.db_config) as conn, conn.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+            return [{"group": r[0], "result": r[1]} for r in rows]
+        else:
+            query = f"SELECT {op_upper}({field}) as result FROM {self.table_name}{where_clause}"
+            with get_connection(self.db_config) as conn, conn.cursor() as cursor:
+                cursor.execute(query)
+                row = cursor.fetchone()
+            return row[0] if row else None
+
+    def sum(self, field: str, group_by: Optional[str] = None) -> Any:
+        """Calculate SUM of specified column."""
+        return self.aggregate(field, "SUM", group_by=group_by)
+
+    def avg(self, field: str, group_by: Optional[str] = None) -> Any:
+        """Calculate AVG of specified column."""
+        return self.aggregate(field, "AVG", group_by=group_by)
+
+    def min(self, field: str, group_by: Optional[str] = None) -> Any:
+        """Calculate MIN of specified column."""
+        return self.aggregate(field, "MIN", group_by=group_by)
+
+    def max(self, field: str, group_by: Optional[str] = None) -> Any:
+        """Calculate MAX of specified column."""
+        return self.aggregate(field, "MAX", group_by=group_by)
 
     def insert_many(
         self, data_list: list[BaseModel], user_id: Optional[int] = None
