@@ -23,6 +23,6 @@ for i in range(1, 21):
     db.insert(Person(id=i, name=f"Person {i}", age=20 + i))
 
 page_size = 5
-print("Página 1:", db.get_all(page=1, page_size=page_size))
-print("Página 2:", db.get_all(page=2, page_size=page_size))
-print("Página 3:", db.get_all(page=3, page_size=page_size))
+print("Página 1:", db.get_page(page=1, per_page=page_size))
+print("Página 2:", db.get_page(page=2, per_page=page_size))
+print("Página 3:", db.get_page(page=3, per_page=page_size))
