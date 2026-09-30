@@ -5,7 +5,7 @@ to define database schemas. Automatically handles table creation,
 synchronization, and CRUD operations.
 
 Usage:
-    from wpostgresql import WPostgreSQL
+    from wpostgresql import WPostgreSQL, ForeignType
 
     class User(BaseModel):
         id: int
@@ -53,12 +53,15 @@ from wpostgresql.exceptions import (
     ValidationError,
     WPostgreSQLError,
 )
+from wpostgresql.types import ForeignType, Foreign_type
 
 __version__ = "1.4.0"
 
 __all__ = [
     "WPostgreSQL",
     "ForensicModel",
+    "ForeignType",
+    "Foreign_type",
     "backup_to_sqlite",
     "backup_to_sqlite_async",
     "backup_db_to_sqlite",
