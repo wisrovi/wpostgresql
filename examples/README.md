@@ -113,6 +113,8 @@ graph TD
 | `16_forensic_fields/` | Automatic audit forensic tracking |
 | `17_multi_table/` | Multi-table management & auto-routing |
 | `18_ghost_table_audit/` | Enterprise Ghost Table audit log (_forensic_audit_log) |
+| `19_forensic_multi_table_backup/` | Multi-Table Forensic Audit & SQLite Backup |
+| `20_database_views/` | Database Views (`__view_query__`, read-only ORM querying) |
 
 ---
 
