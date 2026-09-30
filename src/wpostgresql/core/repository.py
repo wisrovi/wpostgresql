@@ -1348,16 +1348,7 @@ class WPostgreSQL:
     def backup_to_sqlite(
         self, sqlite_path: Union[str, Path], update: bool = False
     ) -> int:
-        """Backup table records to an SQLite database using wsqlite.
-
-        Args:
-            sqlite_path: Path to target SQLite database file.
-            update: If True, updates existing SQLite database table in place without replacing file.
-                    If False (default), creates a temporary backup file and atomically replaces destination file.
-
-        Returns:
-            int: Number of records backed up.
-        """
+        """Backup table records to an SQLite database using wsqlite."""
         from wpostgresql.core.backup import backup_to_sqlite as _backup_to_sqlite
 
         return _backup_to_sqlite(self, sqlite_path, update=update)
@@ -1365,18 +1356,27 @@ class WPostgreSQL:
     async def backup_to_sqlite_async(
         self, sqlite_path: Union[str, Path], update: bool = False
     ) -> int:
-        """Asynchronously backup table records to an SQLite database using wsqlite.
-
-        Args:
-            sqlite_path: Path to target SQLite database file.
-            update: If True, updates existing SQLite database table in place without replacing file.
-                    If False (default), creates a temporary backup file and atomically replaces destination file.
-
-        Returns:
-            int: Number of records backed up.
-        """
+        """Asynchronously backup table records to an SQLite database using wsqlite."""
         from wpostgresql.core.backup import (
             backup_to_sqlite_async as _backup_to_sqlite_async,
         )
 
         return await _backup_to_sqlite_async(self, sqlite_path, update=update)
+
+    def restore_from_sqlite(
+        self, sqlite_path: Union[str, Path], clear_existing: bool = False
+    ) -> int:
+        """Restore records from an SQLite database back into PostgreSQL table."""
+        from wpostgresql.core.backup import restore_from_sqlite as _restore_from_sqlite
+
+        return _restore_from_sqlite(self, sqlite_path, clear_existing=clear_existing)
+
+    async def restore_from_sqlite_async(
+        self, sqlite_path: Union[str, Path], clear_existing: bool = False
+    ) -> int:
+        """Asynchronously restore records from an SQLite database back into PostgreSQL table."""
+        from wpostgresql.core.backup import (
+            restore_from_sqlite_async as _restore_from_sqlite_async,
+        )
+
+        return await _restore_from_sqlite_async(self, sqlite_path, clear_existing=clear_existing)
