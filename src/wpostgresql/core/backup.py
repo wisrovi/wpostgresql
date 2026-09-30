@@ -2,7 +2,8 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Union
+
 import wsqlite
 
 
@@ -33,16 +34,16 @@ def backup_to_sqlite(
         existing_records = sqlite_db.get_all()
         if existing_records:
             existing_ids = [
-                getattr(rec, "id")
+                rec.id
                 for rec in existing_records
-                if hasattr(rec, "id") and getattr(rec, "id") is not None
+                if hasattr(rec, "id") and rec.id is not None
             ]
             if existing_ids:
                 sqlite_db.delete_many(existing_ids)
             else:
                 for rec in existing_records:
-                    if hasattr(rec, "id") and getattr(rec, "id") is not None:
-                        sqlite_db.delete(getattr(rec, "id"))
+                    if hasattr(rec, "id") and rec.id is not None:
+                        sqlite_db.delete(rec.id)
         if records:
             sqlite_db.insert_many(records)
         return len(records) if records else 0
@@ -97,16 +98,16 @@ async def backup_to_sqlite_async(
         existing_records = sqlite_db.get_all()
         if existing_records:
             existing_ids = [
-                getattr(rec, "id")
+                rec.id
                 for rec in existing_records
-                if hasattr(rec, "id") and getattr(rec, "id") is not None
+                if hasattr(rec, "id") and rec.id is not None
             ]
             if existing_ids:
                 sqlite_db.delete_many(existing_ids)
             else:
                 for rec in existing_records:
-                    if hasattr(rec, "id") and getattr(rec, "id") is not None:
-                        sqlite_db.delete(getattr(rec, "id"))
+                    if hasattr(rec, "id") and rec.id is not None:
+                        sqlite_db.delete(rec.id)
         if records:
             sqlite_db.insert_many(records)
         return len(records) if records else 0
@@ -316,3 +317,117 @@ async def export_to_sql_script_async(
     script_path.write_text("\n".join(lines), encoding="utf-8")
     return str(script_path.resolve())
 
+
+
+def restore_from_sqlite(
+    target: Any,
+    sqlite_path: Union[str, Path],
+    db_config: Optional[dict] = None,
+    clear_existing: bool = False,
+) -> int:
+    """Restore records from an SQLite database back into PostgreSQL.
+
+    Args:
+        target: Model class, list of model classes, or WPostgreSQL instance.
+        sqlite_path: Path to the SQLite database file.
+        db_config: PostgreSQL connection configuration.
+        clear_existing: If True, deletes existing records from PostgreSQL table before restoration.
+
+    Returns:
+        int: Total number of records restored to PostgreSQL.
+    """
+    from wpostgresql.core.repository import WPostgreSQL
+
+    dest_path = Path(sqlite_path)
+    if not dest_path.exists():
+        raise FileNotFoundError(f"SQLite backup file not found at: {sqlite_path}")
+
+    if isinstance(target, list):
+        models = target
+        if db_config is None:
+            raise ValueError("db_config must be provided when target is a list of models.")
+        total_restored = 0
+        for model in models:
+            repo = WPostgreSQL(model, db_config)
+            total_restored += restore_from_sqlite(repo, dest_path, clear_existing=clear_existing)
+        return total_restored
+    elif isinstance(target, type):
+        if db_config is None:
+            raise ValueError("db_config must be provided when target is a model class.")
+        repo = WPostgreSQL(target, db_config)
+    else:
+        repo = target
+
+    table_name = getattr(repo, "table_name", getattr(repo.model, "__tablename__", repo.model.__name__.lower()))
+    sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path), table_name=table_name)
+    sqlite_records = sqlite_db.get_all()
+
+    if not sqlite_records:
+        return 0
+
+    if clear_existing:
+        existing_pg = repo.get_all()
+        if existing_pg:
+            existing_ids = [r.id for r in existing_pg if hasattr(r, "id") and r.id is not None]
+            if existing_ids:
+                repo.delete_many(existing_ids, hard=True)
+
+    repo.insert_many(sqlite_records)
+    return len(sqlite_records)
+
+
+async def restore_from_sqlite_async(
+    target: Any,
+    sqlite_path: Union[str, Path],
+    db_config: Optional[dict] = None,
+    clear_existing: bool = False,
+) -> int:
+    """Asynchronously restore records from an SQLite database back into PostgreSQL.
+
+    Args:
+        target: Model class, list of model classes, or WPostgreSQL instance.
+        sqlite_path: Path to the SQLite database file.
+        db_config: PostgreSQL connection configuration.
+        clear_existing: If True, deletes existing records from PostgreSQL table before restoration.
+
+    Returns:
+        int: Total number of records restored to PostgreSQL.
+    """
+    from wpostgresql.core.repository import WPostgreSQL
+
+    dest_path = Path(sqlite_path)
+    if not dest_path.exists():
+        raise FileNotFoundError(f"SQLite backup file not found at: {sqlite_path}")
+
+    if isinstance(target, list):
+        models = target
+        if db_config is None:
+            raise ValueError("db_config must be provided when target is a list of models.")
+        total_restored = 0
+        for model in models:
+            repo = WPostgreSQL(model, db_config)
+            total_restored += await restore_from_sqlite_async(repo, dest_path, clear_existing=clear_existing)
+        return total_restored
+    elif isinstance(target, type):
+        if db_config is None:
+            raise ValueError("db_config must be provided when target is a model class.")
+        repo = WPostgreSQL(target, db_config)
+    else:
+        repo = target
+
+    table_name = getattr(repo, "table_name", getattr(repo.model, "__tablename__", repo.model.__name__.lower()))
+    sqlite_db = wsqlite.WSQLite(model=repo.model, db_path=str(dest_path), table_name=table_name)
+    sqlite_records = sqlite_db.get_all()
+
+    if not sqlite_records:
+        return 0
+
+    if clear_existing:
+        existing_pg = await repo.get_all_async()
+        if existing_pg:
+            existing_ids = [r.id for r in existing_pg if hasattr(r, "id") and r.id is not None]
+            if existing_ids:
+                await repo.delete_many_async(existing_ids, hard=True)
+
+    await repo.insert_many_async(sqlite_records)
+    return len(sqlite_records)
