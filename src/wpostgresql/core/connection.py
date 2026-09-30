@@ -244,24 +244,28 @@ class Transaction:
         """Initialize transaction with database configuration."""
         self.db_config = db_config
         self.conn: Optional[Connection] = None
+        self._pooled_conn = None
         self._committed = False
 
     def __enter__(self) -> "Transaction":
         """Start a new connection and begin a transaction."""
-        self.conn = psycopg.connect(**self.db_config)
+        self._pooled_conn = get_connection(self.db_config)
+        self.conn = self._pooled_conn.__enter__()
         self.conn.autocommit = False
         logger.debug("Transaction started")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         """Commit or rollback based on whether an exception occurred."""
-        if exc_type is not None:
-            self.conn.rollback()
-            logger.debug("Transaction rolled back")
-        elif not self._committed:
-            self.conn.commit()
-            logger.debug("Transaction committed")
-        self.conn.close()
+        if self.conn is not None:
+            if exc_type is not None:
+                self.conn.rollback()
+                logger.debug("Transaction rolled back")
+            elif not self._committed:
+                self.conn.commit()
+                logger.debug("Transaction committed")
+        if self._pooled_conn is not None:
+            self._pooled_conn.__exit__(exc_type, exc_val, exc_tb)
         return False
 
     def commit(self) -> None:
@@ -356,8 +360,8 @@ def get_transaction(db_config: dict) -> Generator[Transaction, None, None]:
     Yields:
         Transaction: An active transaction instance.
     """
-    transaction = Transaction(db_config)
-    yield transaction
+    with Transaction(db_config) as transaction:
+        yield transaction
 
 
 @contextmanager
