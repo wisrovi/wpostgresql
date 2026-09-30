@@ -13,22 +13,13 @@ from psycopg_pool import AsyncConnectionPool, ConnectionPool
 logger = logging.getLogger(__name__)
 
 _global_pool_lock = threading.Lock()
-# pylint: disable=invalid-name
-_global_sync_pool: Optional[ConnectionPool] = None
-# pylint: disable=invalid-name
-_global_async_pool: Optional[AsyncConnectionPool] = None
+_global_sync_pools: dict[str, ConnectionPool] = {}
+_global_async_pools: dict[str, AsyncConnectionPool] = {}
 DEFAULT_POOL_CONFIG = {"min_size": 5, "max_size": 50}
 
 
 def _build_conninfo(db_config: dict) -> str:
-    """Build connection string from config dict.
-
-    Args:
-        db_config: Dictionary containing database connection parameters.
-
-    Returns:
-        str: A PostgreSQL connection string (conninfo).
-    """
+    """Build connection string from config dict."""
     parts = []
     for key, value in db_config.items():
         if key == "port":
@@ -41,30 +32,19 @@ def _build_conninfo(db_config: dict) -> str:
 
 
 def _get_global_sync_pool(db_config: dict, pool_config: Optional[dict] = None) -> ConnectionPool:
-    """Get or create global sync connection pool.
-
-    Args:
-        db_config: Dictionary containing database connection parameters.
-        pool_config: Optional pool configuration dictionary.
-
-    Returns:
-        ConnectionPool: The global synchronous connection pool.
-    """
-    # pylint: disable=global-statement
-    global _global_sync_pool
-
+    """Get or create global sync connection pool for given db_config."""
     config = pool_config or DEFAULT_POOL_CONFIG
     conninfo = _build_conninfo(db_config)
 
     with _global_pool_lock:
-        if _global_sync_pool is None:
-            _global_sync_pool = ConnectionPool(
+        if conninfo not in _global_sync_pools or _global_sync_pools[conninfo].closed:
+            _global_sync_pools[conninfo] = ConnectionPool(
                 conninfo,
                 min_size=config.get("min_size", DEFAULT_POOL_CONFIG["min_size"]),
                 max_size=config.get("max_size", DEFAULT_POOL_CONFIG["max_size"]),
             )
-            logger.info("Created global sync pool with config: %s", config)
-        return _global_sync_pool
+            logger.info("Created global sync pool for conninfo %s with config: %s", conninfo, config)
+        return _global_sync_pools[conninfo]
 
 
 def configure_pool(
@@ -130,51 +110,51 @@ def configure_pool(
 def _get_global_async_pool(
     db_config: dict, pool_config: Optional[dict] = None
 ) -> AsyncConnectionPool:
-    """Get or create global async connection pool.
-
-    Args:
-        db_config: Dictionary containing database connection parameters.
-        pool_config: Optional pool configuration dictionary.
-
-    Returns:
-        AsyncConnectionPool: The global asynchronous connection pool.
-    """
-    # pylint: disable=global-statement
-    global _global_async_pool
-
+    """Get or create global async connection pool for given db_config."""
     config = pool_config or DEFAULT_POOL_CONFIG
     conninfo = _build_conninfo(db_config)
 
     with _global_pool_lock:
-        if _global_async_pool is None:
-            _global_async_pool = AsyncConnectionPool(
+        if conninfo not in _global_async_pools or _global_async_pools[conninfo].closed:
+            _global_async_pools[conninfo] = AsyncConnectionPool(
                 conninfo,
                 min_size=config.get("min_size", DEFAULT_POOL_CONFIG["min_size"]),
                 max_size=config.get("max_size", DEFAULT_POOL_CONFIG["max_size"]),
-                open=False,  # Will be opened lazily in get_async_connection
+                open=False,
             )
             logger.info(
-                "Created global async pool with config: %s (will open on first use)", config
+                "Created global async pool for conninfo %s with config: %s", conninfo, config
             )
-        return _global_async_pool
+        return _global_async_pools[conninfo]
 
 
 def close_global_pools() -> None:
-    """Close global connection pools.
-
-    Resets the global sync and async pools to None after closing them.
-    """
-    # pylint: disable=global-statement
-    global _global_sync_pool, _global_async_pool
-
+    """Close all global connection pools (sync)."""
     with _global_pool_lock:
-        if _global_sync_pool:
-            _global_sync_pool.close()
-            _global_sync_pool = None
-        if _global_async_pool:
-            _global_async_pool.close()
-            _global_async_pool = None
-        logger.info("Global connection pools closed")
+        for pool in _global_sync_pools.values():
+            with suppress(Exception):
+                pool.close()
+        _global_sync_pools.clear()
+        for pool in _global_async_pools.values():
+            with suppress(Exception):
+                pool.close()
+        _global_async_pools.clear()
+        logger.info("All global connection pools closed")
+
+
+async def close_global_pools_async() -> None:
+    """Asynchronously close all global connection pools."""
+    with _global_pool_lock:
+        for pool in _global_sync_pools.values():
+            with suppress(Exception):
+                pool.close()
+        _global_sync_pools.clear()
+
+        for pool in list(_global_async_pools.values()):
+            with suppress(Exception):
+                await pool.close()
+        _global_async_pools.clear()
+        logger.info("All global connection pools closed asynchronously")
 
 
 class _PooledConnection:
