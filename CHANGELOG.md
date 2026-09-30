@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-09-30
+
+### Added
+- **Database Views (`@view`)**: Declarative definition of PostgreSQL views using the `@view(name=..., depends_on=..., query=...)` decorator with read-only ORM querying.
+- **Topological View Dependency Resolution**: `depends_on=[...]` ensures parent tables are initialized before views are created.
+- **Bidirectional SQLite Backup & Restore**: New `restore_from_sqlite` and `restore_from_sqlite_async` functions to restore SQLite backups back to PostgreSQL.
+- **Declarative Foreign Key Relationships**: `ForeignType` enum (`ONE_ONE`, `ONE_MANY`, `MANY_MANY`) exported at top-level package.
+- **Automatic Primary Key Synthesis**: Auto-generation of `id SERIAL PRIMARY KEY` when omitted in Pydantic models.
+- **New Repository Query Methods**: Added `get()`, `filter()`, `get_ghost_audit_log()`, `aggregate()`, `sum()`, `avg()`, `min()`, `max()`.
+
 ---
 
 ## [1.0.0 (LTS)] - 2026-03-31
