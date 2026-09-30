@@ -1,29 +1,11 @@
-"""Automatic timestamps example."""
+"""Automatic timestamps example using WPostgreSQL ORM."""
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel, Field
-
-from wpostgresql import WPostgreSQL
-from wpostgresql.core.connection import get_connection
-
-
-class TimestampedModel(BaseModel):
-    """Base model with automatic timestamps."""
-
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: Optional[datetime] = None
-
-
-class Person(BaseModel):
-    id: int
-    name: str
-    age: int
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: Optional[datetime] = None
-
+from wpostgresql import WPostgreSQL, ForensicModel
 
 db_config = {
     "dbname": "wpostgresql",
@@ -34,90 +16,74 @@ db_config = {
 }
 
 
-db = WPostgreSQL(Person, db_config)
+class Person(BaseModel):
+    """Person model with timestamp fields."""
 
-# Insert with automatic timestamps
-person = Person(id=1, name="Alice", age=30)
-db.insert(person)
-
-# Get and display
-results = db.get_by_field(id=1)
-print("After insert:")
-print(f"  created_at: {results[0].created_at}")
-print(f"  updated_at: {results[0].updated_at}")
-
-time.sleep(1)
-
-# Update - we need to manually update the timestamp
-updated_person = Person(
-    id=1, name="Alice Smith", age=31, created_at=results[0].created_at, updated_at=datetime.now()
-)
-db.update(1, updated_person)
-
-# Get updated
-results = db.get_by_field(id=1)
-print("\nAfter update:")
-print(f"  name: {results[0].name}")
-print(f"  age: {results[0].age}")
-print(f"  created_at: {results[0].created_at}")
-print(f"  updated_at: {results[0].updated_at}")
+    name: str
+    age: int
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = None
 
 
-# Using raw SQL for automatic timestamps
-def create_table_with_timestamps(table_name: str):
-    """Create table with automatic timestamps."""
-    query = f"""
-    CREATE TABLE IF NOT EXISTS {table_name} (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        age INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+class ForensicPerson(ForensicModel):
+    """Person model with built-in automatic forensic timestamps (create_in, update_in)."""
+
+    name: str
+    age: int
+
+
+def main():
+    print("--- 1. Pydantic Model with Timestamp Fields ---")
+    db = WPostgreSQL(Person, db_config)
+    try:
+        db._sync.drop_table()
+    except Exception:
+        pass
+    db = WPostgreSQL(Person, db_config)
+
+    # Insert with automatic timestamps
+    person = db.insert(Person(name="Alice", age=30))
+    person_id = getattr(person, "id", 1)
+
+    results = db.get_by_field(id=person_id)
+    print("After insert:")
+    print(f"  created_at: {results[0].created_at}")
+    print(f"  updated_at: {results[0].updated_at}")
+
+    time.sleep(0.5)
+
+    # Update timestamp
+    updated_person = Person(
+        name="Alice Smith",
+        age=31,
+        created_at=results[0].created_at,
+        updated_at=datetime.now(timezone.utc),
     )
-    """
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-        conn.commit()
+    db.update(person_id, updated_person)
+
+    results = db.get_by_field(id=person_id)
+    print("\nAfter update:")
+    print(f"  name: {results[0].name}")
+    print(f"  age: {results[0].age}")
+    print(f"  created_at: {results[0].created_at}")
+    print(f"  updated_at: {results[0].updated_at}")
+
+    print("\n--- 2. Built-in Forensic Timestamps (ForensicModel) ---")
+    f_db = WPostgreSQL(ForensicPerson, db_config)
+    try:
+        f_db._sync.drop_table()
+    except Exception:
+        pass
+    f_db = WPostgreSQL(ForensicPerson, db_config)
+
+    f_person = f_db.insert(ForensicPerson(name="Bob", age=25), user_id=100)
+    f_id = getattr(f_person, "id", 1)
+    print(f"Inserted ForensicPerson Bob (ID={f_id}) with automatic create_in timestamp!")
+
+    f_updated = ForensicPerson(name="Bob Smith", age=26)
+    f_db.update(f_id, f_updated, user_id=200)
+    print(f"Updated ForensicPerson Bob with automatic update_in timestamp!")
 
 
-def update_with_timestamp(table_name: str, record_id: int, **kwargs):
-    """Update record with automatic timestamp."""
-    set_clauses = [f"{k} = %s" for k in kwargs]
-    set_clauses.append("updated_at = CURRENT_TIMESTAMP")
-
-    query = f"""
-    UPDATE {table_name}
-    SET {", ".join(set_clauses)}
-    WHERE id = %s
-    """
-    values = tuple(kwargs.values()) + (record_id,)
-
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(query, values)
-        conn.commit()
-
-
-# Example with auto timestamps
-create_table_with_timestamps("person_auto")
-
-with get_connection(db_config) as conn:
-    with conn.cursor() as cursor:
-        cursor.execute(
-            "INSERT INTO person_auto (name, age) VALUES (%s, %s) RETURNING id, created_at",
-            ("Bob", 25),
-        )
-        result = cursor.fetchone()
-        print(f"\nInserted: id={result[0]}, created_at={result[1]}")
-    conn.commit()
-
-update_with_timestamp("person_auto", 1, name="Bob Smith", age=26)
-
-with get_connection(db_config) as conn:
-    with conn.cursor() as cursor:
-        cursor.execute("SELECT id, name, age, created_at, updated_at FROM person_auto WHERE id = 1")
-        row = cursor.fetchone()
-        print(
-            f"Updated: id={row[0]}, name={row[1]}, age={row[2]}, created_at={row[3]}, updated_at={row[4]}"
-        )
+if __name__ == "__main__":
+    main()
