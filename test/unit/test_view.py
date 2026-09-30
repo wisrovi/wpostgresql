@@ -1,9 +1,9 @@
-"""Unit tests for WPostgreSQL Database Views functionality."""
+"""Unit tests for WPostgreSQL Database Views functionality with @view decorator."""
 
 import pytest
 from pydantic import BaseModel, Field
 
-from wpostgresql import ForeignType, WPostgreSQL
+from wpostgresql import ForeignType, WPostgreSQL, view
 from wpostgresql.exceptions import OperationError
 
 
@@ -22,10 +22,11 @@ class ViewOrder(BaseModel):
     amount: float
 
 
-class CustomerOrderSummaryView(BaseModel):
-    __view_name__ = "customer_order_summary"
-    __view_query__ = """
-        SELECT
+@view(
+    name="customer_order_summary",
+    depends_on=[ViewCustomer, ViewOrder],
+    query="""
+        SELECT 
             c.id AS customer_id,
             c.name AS customer_name,
             COUNT(o.id) AS total_orders,
@@ -33,8 +34,9 @@ class CustomerOrderSummaryView(BaseModel):
         FROM viewcustomer c
         LEFT JOIN vieworder o ON c.id = o.customer_id
         GROUP BY c.id, c.name
-    """
-
+    """,
+)
+class CustomerOrderSummary(BaseModel):
     customer_id: int
     customer_name: str
     total_orders: int
@@ -53,9 +55,9 @@ def db_config():
 
 
 def test_database_views_creation_and_query(db_config):
-    """Test creating tables + views, inserting data, and querying the view via ORM."""
+    """Test creating tables + views using @view decorator, inserting data, and querying the view via ORM."""
     db = WPostgreSQL(
-        models=[ViewCustomer, ViewOrder, CustomerOrderSummaryView],
+        models=[ViewCustomer, ViewOrder, CustomerOrderSummary],
         db_config=db_config,
     )
 
@@ -67,7 +69,7 @@ def test_database_views_creation_and_query(db_config):
     db[ViewOrder].insert(ViewOrder(customer_id=u1.id, amount=200.0))
 
     # Query view
-    summaries = db[CustomerOrderSummaryView].get_all()
+    summaries = db[CustomerOrderSummary].get_all()
     assert isinstance(summaries, list)
     matching = [s for s in summaries if s.customer_id == u1.id]
     assert len(matching) == 1
@@ -79,11 +81,11 @@ def test_database_views_creation_and_query(db_config):
 def test_database_views_read_only_restriction(db_config):
     """Test that mutation operations (insert, update, delete) on Views raise OperationError."""
     db = WPostgreSQL(
-        models=[ViewCustomer, ViewOrder, CustomerOrderSummaryView],
+        models=[ViewCustomer, ViewOrder, CustomerOrderSummary],
         db_config=db_config,
     )
 
-    dummy_item = CustomerOrderSummaryView(
+    dummy_item = CustomerOrderSummary(
         customer_id=999,
         customer_name="Dummy",
         total_orders=0,
@@ -92,12 +94,12 @@ def test_database_views_read_only_restriction(db_config):
 
     # Test insert restriction
     with pytest.raises(OperationError, match="Database Views are read-only"):
-        db[CustomerOrderSummaryView].insert(dummy_item)
+        db[CustomerOrderSummary].insert(dummy_item)
 
     # Test update restriction
     with pytest.raises(OperationError, match="Database Views are read-only"):
-        db[CustomerOrderSummaryView].update(1, dummy_item)
+        db[CustomerOrderSummary].update(1, dummy_item)
 
     # Test delete restriction
     with pytest.raises(OperationError, match="Database Views are read-only"):
-        db[CustomerOrderSummaryView].delete(1)
+        db[CustomerOrderSummary].delete(1)
