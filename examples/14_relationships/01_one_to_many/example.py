@@ -1,8 +1,7 @@
-"""One-to-Many relationship example (Person -> Addresses)."""
+"""One-to-Many relationship example (Person -> Addresses) using WPostgreSQL ORM."""
 
-from pydantic import BaseModel
-
-from wpostgresql.core.connection import get_connection
+from pydantic import BaseModel, Field
+from wpostgresql import WPostgreSQL, ForeignType
 
 db_config = {
     "dbname": "wpostgresql",
@@ -13,116 +12,69 @@ db_config = {
 }
 
 
+class Person(BaseModel):
+    """Person model."""
+
+    name: str
+    age: int
+
+
 class Address(BaseModel):
-    id: int
-    person_id: int
+    """Address model related to Person (1:N relationship)."""
+
+    person_id: int = Field(
+        description="Foreign Key to Person",
+        json_schema_extra={
+            "foreign_key": Person,
+            "foreign_type": ForeignType.ONE_MANY,
+        },
+    )
     street: str
     city: str
     country: str
 
 
-class Person(BaseModel):
-    id: int
-    name: str
-    age: int
+def main():
+    # Initialize WPostgreSQL ORM in multi-table mode
+    db = WPostgreSQL([Person, Address], db_config)
+
+    # Clean existing tables for clean execution
+    for m in [Address, Person]:
+        try:
+            db[m]._sync.drop_table()
+        except Exception:
+            pass
+
+    db = WPostgreSQL([Person, Address], db_config)
+
+    # Insert Person
+    person = Person(name="Alice", age=30)
+    inserted_person = db.insert(person)
+    person_id = getattr(inserted_person, "id", 1)
+
+    # Insert Addresses
+    addr1 = Address(person_id=person_id, street="123 Main St", city="New York", country="USA")
+    addr2 = Address(person_id=person_id, street="456 Oak Ave", city="Los Angeles", country="USA")
+    db.insert(addr1)
+    db.insert(addr2)
+
+    print("=== One-to-Many Relationship ===\n")
+
+    fetched_person = db[Person].get(person_id)
+    addresses = db.address.filter(person_id=person_id)
+
+    print(f"Person: id={getattr(fetched_person, 'id', 1)}, name={fetched_person.name}, age={fetched_person.age}")
+    print("Addresses:")
+    for addr in addresses:
+        print(f"  - {addr.street}, {addr.city}, {addr.country}")
+
+    people = db[Person].get_all()
+    print("\nAll people with addresses:")
+    for p in people:
+        pid = getattr(p, "id", 1)
+        p_addrs = db.address.filter(person_id=pid)
+        print(f"  {p.name} (age {p.age}): {len(p_addrs)} addresses")
 
 
-def create_tables():
-    """Create person and address tables with foreign key."""
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("DROP TABLE IF EXISTS address CASCADE")
-            cursor.execute("DROP TABLE IF EXISTS person CASCADE")
-
-            cursor.execute("""
-                CREATE TABLE person (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    age INTEGER
-                )
-            """)
-
-            cursor.execute("""
-                CREATE TABLE address (
-                    id SERIAL PRIMARY KEY,
-                    person_id INTEGER REFERENCES person(id),
-                    street TEXT NOT NULL,
-                    city TEXT NOT NULL,
-                    country TEXT NOT NULL
-                )
-            """)
-        conn.commit()
-
-
-def insert_person_with_addresses(person: Person, addresses: list[dict]):
-    """Insert person and their addresses."""
-    with get_connection(db_config) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(
-                "INSERT INTO person (id, name, age) VALUES (%s, %s, %s)",
-                (person.id, person.name, person.age),
-            )
-
-            for addr in addresses:
-                cursor.execute(
-                    "INSERT INTO address (person_id, street, city, country) VALUES (%s, %s, %s, %s)",
-                    (person.id, addr["street"], addr["city"], addr["country"]),
-                )
-        conn.commit()
-
-
-def get_person_with_addresses(person_id: int) -> tuple:
-    """Get person with all their addresses."""
-    with get_connection(db_config) as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT id, name, age FROM person WHERE id = %s", (person_id,))
-        person = cursor.fetchone()
-
-        cursor.execute(
-            "SELECT id, person_id, street, city, country FROM address WHERE person_id = %s",
-            (person_id,),
-        )
-        addresses = cursor.fetchall()
-
-    return person, addresses
-
-
-def get_all_people_with_addresses() -> list:
-    """Get all people with their addresses."""
-    with get_connection(db_config) as conn, conn.cursor() as cursor:
-        cursor.execute("SELECT id, name, age FROM person ORDER BY id")
-        people = cursor.fetchall()
-
-        result = []
-        for person in people:
-            cursor.execute(
-                "SELECT street, city, country FROM address WHERE person_id = %s",
-                (person[0],),
-            )
-            addresses = cursor.fetchall()
-            result.append({"person": person, "addresses": addresses})
-
-    return result
-
-
-create_tables()
-
-person = Person(id=1, name="Alice", age=30)
-addresses = [
-    {"street": "123 Main St", "city": "New York", "country": "USA"},
-    {"street": "456 Oak Ave", "city": "Los Angeles", "country": "USA"},
-]
-
-insert_person_with_addresses(person, addresses)
-
-print("=== One-to-Many Relationship ===\n")
-
-person_data, addr_data = get_person_with_addresses(1)
-print(f"Person: id={person_data[0]}, name={person_data[1]}, age={person_data[2]}")
-print("Addresses:")
-for addr in addr_data:
-    print(f"  - {addr[2]}, {addr[3]}, {addr[4]}")
-
-print("\nAll people with addresses:")
-for item in get_all_people_with_addresses():
-    p = item["person"]
-    print(f"  {p[1]} (age {p[2]}): {len(item['addresses'])} addresses")
+if __name__ == "__main__":
+    main()
