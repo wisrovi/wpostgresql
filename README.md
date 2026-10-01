@@ -279,16 +279,49 @@ async def main():
 asyncio.run(main())
 ```
 
-### SQLite Backup
+### Database Views (`@view` Decorator)
 
-Export PostgreSQL table data directly into an SQLite database file using `wsqlite`:
+Define PostgreSQL Views declaratively using Pydantic models and the `@view` decorator with topological dependency resolution:
 
 ```python
-# 1. Single Table Backup (Atomic replace by default)
-db.backup_to_sqlite("backup.db")
+from pydantic import BaseModel
+from wpostgresql import WPostgreSQL, view
 
-# 2. Single Table In-place Update
+@view(
+    name="customer_summary",
+    depends_on=["customer", "invoice"],
+    query="""
+        SELECT c.id AS customer_id, c.name AS customer_name, COUNT(i.id) AS total_invoices
+        FROM customer c
+        LEFT JOIN invoice i ON c.id = i.customer_id
+        GROUP BY c.id, c.name
+    """,
+)
+class CustomerSummary(BaseModel):
+    customer_id: int
+    customer_name: str
+    total_invoices: int
+
+db = WPostgreSQL([Customer, Invoice, CustomerSummary], DB_CONFIG)
+
+# Query view as a standard read-only model
+summaries = db[CustomerSummary].get_all()
+```
+
+### SQLite Backup & Restore (Bidirectional)
+
+Export PostgreSQL table data directly into an SQLite database file using `wsqlite` or restore SQLite backups into PostgreSQL:
+
+```python
+# 1. Single Table Backup (Atomic replace or update)
+db.backup_to_sqlite("backup.db")
 db.backup_to_sqlite("backup.db", update=True)
+
+# 2. Restore SQLite Backup into PostgreSQL (Sync & Async)
+from wpostgresql import restore_from_sqlite, restore_from_sqlite_async
+
+restore_from_sqlite(User, DB_CONFIG, "backup.db")
+# Async: await restore_from_sqlite_async(User, DB_CONFIG, "backup.db")
 
 # 3. Full Database Backup (All Pydantic models/tables into one SQLite file)
 from wpostgresql import backup_db_to_sqlite, backup_db_to_sqlite_async
@@ -297,6 +330,7 @@ models = [User, Product, Order]
 results = backup_db_to_sqlite(models, DB_CONFIG, "full_database.db")
 # Async: await backup_db_to_sqlite_async(models, DB_CONFIG, "full_database.db")
 ```
+
 
 ### SQL Reconstruction Dump Script
 
