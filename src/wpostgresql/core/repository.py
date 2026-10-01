@@ -270,9 +270,12 @@ class WPostgreSQL:
         if name_lower in repositories:
             return repositories[name_lower]
 
-        raise AttributeError(
-            f"'{type(self).__name__}' object has no attribute '{name}'"
-        )
+        try:
+            return object.__getattribute__(self, name)
+        except AttributeError:
+            raise AttributeError(
+                f"'{type(self).__name__}' object has no attribute '{name}'"
+            )
 
     def table(self, item: Union[type[BaseModel], str]) -> "WPostgreSQL":
         """Get repository for a specific model or table name."""
