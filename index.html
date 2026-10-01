@@ -323,15 +323,16 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                v1.4.0 • Enterprise Forensic Automation & Multi-Table ORM
+                v1.5.0 • Enterprise Forensic Automation, Database Views & SQLite Restore
             </div>
             <h1 class="hero-title">
                 <span class="gradient-text">Enterprise Forensic Automation</span><br>
                 & Type-Safe PostgreSQL ORM
             </h1>
             <p class="hero-subtitle">
-                More than a simple ORM. <strong>wpostgresql</strong> delivers automated forensic audit trails (<code>_forensic_audit_log</code>), Change Data Capture (CDC), multi-table routing, and Pydantic v2 schema synchronization with zero boilerplate.
+                More than a simple ORM. <strong>wpostgresql</strong> delivers automated forensic audit trails (<code>_forensic_audit_log</code>), `@view` Database Views, bidirectional SQLite backup/restore, multi-table routing, and Pydantic v2 schema synchronization with zero boilerplate.
             </p>
+
             <div class="hero-actions">
                 <a href="https://github.com/wisrovi/wpostgresql" class="btn btn-primary" target="_blank">
                     <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -380,10 +381,21 @@ db.insert(User(id=<span class="number">1</span>, name=<span class="string">"Will
             </div>
             <div class="features-grid">
                 <div class="feature-card">
+                    <div class="feature-icon">👁️</div>
+                    <h3>Database Views (@view)</h3>
+                    <p>Declarative PostgreSQL View creation with topological <code>depends_on</code> resolution, auto-sync DDL, and read-only ORM model querying.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3>Bidirectional SQLite Backup & Restore</h3>
+                    <p>Export PostgreSQL tables to SQLite files (`backup_to_sqlite`) or restore SQLite data back into PostgreSQL (`restore_from_sqlite`) with sync and async APIs.</p>
+                </div>
+                <div class="feature-card">
                     <div class="feature-icon">👻</div>
                     <h3>Ghost Audit Trail (_forensic_audit_log)</h3>
                     <p>Automatic creation and tracking of global <code>_forensic_audit_log</code> storing before/after JSON snapshots and user audit metadata on every INSERT, UPDATE, SOFT_DELETE, and HARD_DELETE.</p>
                 </div>
+
                 <div class="feature-card">
                     <div class="feature-icon">🗂️</div>
                     <h3>Multi-Table Management</h3>
@@ -560,9 +572,18 @@ pip install -e .</pre>
                     <div class="example-num">09</div>
                     <div class="example-info"><h4>Async/Await</h4><p>Full async support</p></div>
                 </a>
+                <a href="https://github.com/wisrovi/wpostgresql/tree/main/examples/15_backups" class="example-card" target="_blank">
+                    <div class="example-num">15</div>
+                    <div class="example-info"><h4>SQLite Backup & Restore</h4><p>Bidirectional SQLite backup/restore</p></div>
+                </a>
+                <a href="https://github.com/wisrovi/wpostgresql/tree/main/examples/20_database_views" class="example-card" target="_blank">
+                    <div class="example-num">20</div>
+                    <div class="example-info"><h4>Database Views (@view)</h4><p>Topological SQL Views DDL</p></div>
+                </a>
             </div>
         </div>
     </section>
+
 
     <section class="section stats-section">
         <div class="container">
